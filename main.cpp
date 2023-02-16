@@ -32,13 +32,13 @@ int main(void)
     using enum Shooby::enum_type;
 
     ShoobyDB<Shooby>::Reset();
-    auto num = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
-    cout << "num: " << num << endl;
+    auto str = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
+    cout << "str: " << str << endl;
 
     ShoobyDB<Shooby>::Set(Shooby::STRING, "WHOOOAA");
 
-    num = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
-    cout << "num: " << num << endl;
+    str = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
+    cout << "str: " << str << endl;
 
 
     return 0;
