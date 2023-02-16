@@ -29,7 +29,6 @@
 #define SHOOBY_META_MAP_END  };};
 
 /*
-
 ================= USAGE =================
 
 define a metamap for a database named "Shooby"
@@ -68,8 +67,7 @@ struct Shooby
     };
 
     // < static inline constexpr MetaData META_MAP[enum_type::NUM] must be defined >
-    static inline constexpr MetaData META_MAP[enum_type::NUM] =
-    {
+    static inline constexpr MetaData META_MAP[enum_type::NUM] = {       //This line is the same as SHOOBY_META_MAP_START
         [NUMBER] = {"NUMBER", uint16_t(250)},
         [BOOL] = {"BOOL", bool(true)},
         [STRING] = {"STRING", 32, "WHATEVER"},

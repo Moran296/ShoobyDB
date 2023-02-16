@@ -40,5 +40,6 @@ int main(void)
     num = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
     cout << "num: " << num << endl;
 
+
     return 0;
 }
