@@ -1,10 +1,18 @@
 
+template <EnumMetaMap E>
+void ShoobyDB<E>::Init()
+{
+    SHOOBY_MUTEX_INIT(s_mutex);
+    Reset();
+    // Backend load
+
+    s_is_initialized = true;
+}
+
 // reset buffer to default!
 template <EnumMetaMap E>
 void ShoobyDB<E>::Reset()
 {
-    using namespace std;
-
     size_t offset = 0;
 
     for (int i = 0; i < E::NUM; i++)
@@ -60,7 +68,6 @@ T ShoobyDB<E>::Get(E::enum_type e)
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
 
         return (T)(DATA_BUFFER + get_offset(e));
-
     }
 
     // case for blobs
@@ -71,7 +78,6 @@ T ShoobyDB<E>::Get(E::enum_type e)
 
         if (sizeof(T) != get_size(e))
             ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
-
     }
 
     // case for arithmetics
@@ -118,7 +124,6 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
 
         if (sizeof(T) != get_size(e))
             ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
-
     }
 
     // case for arithmetics
@@ -134,22 +139,46 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
 
 template <EnumMetaMap E>
 template <class T>
-bool ShoobyDB<E>::set_if_changed(void* dst, const T& src, size_t size) {
+bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
+{
     using raw_type = std::decay_t<T>;
 
-    if constexpr (std::is_pointer_v<raw_type>) {
-        if (memcmp(dst, src, size) == 0) {
+    if constexpr (std::is_pointer_v<raw_type>)
+    {
+        if (memcmp(dst, src, size) == 0)
+        {
             return false;
         }
 
         memcpy(dst, src, size);
         return true;
-    } else {
-        if (memcmp(dst, &src, size) == 0) {
+    }
+    else
+    {
+        if (memcmp(dst, &src, size) == 0)
+        {
             return false;
         }
 
         memcpy(dst, &src, size);
         return true;
     }
+}
+
+template <EnumMetaMap E>
+template <class Visitor>
+void ShoobyDB<E>::VisitRaw(Visitor &&visitor)
+{
+    for (size_t i = 0; i < E::NUM; ++i)
+    {
+        typename E::enum_type e = static_cast<E::enum_type>(i);
+        visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
+    }
+}
+
+template <EnumMetaMap E>
+void ShoobyDB<E>::SetObserver(observer_f f, void *user_data)
+{
+    observer = f;
+    observer_user_data = user_data;
 }

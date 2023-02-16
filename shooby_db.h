@@ -29,7 +29,9 @@ template <EnumMetaMap E>
 class ShoobyDB
 {
 public:
-    // reset buffer to default!
+    typedef void (*observer_f)(E::enum_type, const void *, size_t, void *);
+
+    static void Init();
     static void Reset();
 
     template <class T>
@@ -39,24 +41,39 @@ public:
     static bool Set(E::enum_type e, const T &t);
 
     template <class Visitor>
-    static void VisitRaw(Visitor &&visitor) {
-        for (size_t i = 0; i < E::NUM; ++i)
-        {
-            typename E::enum_type e = static_cast<E::enum_type>(i);
-            visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
-        }
-    }
+    static void VisitRaw(Visitor &&visitor);
 
-private:
-    static inline constexpr size_t required_data_buffer_size = required_buffer_size<E>();
-    static inline constinit uint8_t DATA_BUFFER[required_data_buffer_size]{};
+    static void SetObserver(observer_f f, void *user_data = nullptr);
 
-    static size_t get_offset(E::enum_type e);
     static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
     static size_t get_size(E::enum_type e) { return E::META_MAP[e].size; }
 
+private:
+    // CTORS
+    ShoobyDB(const ShoobyDB &) = delete;
+    ShoobyDB &operator=(const ShoobyDB &) = delete;
+    ShoobyDB(ShoobyDB &&) = delete;
+    ShoobyDB &operator=(ShoobyDB &&) = delete;
+
+    // DATA RELATED
+    static inline constexpr size_t required_data_buffer_size = required_buffer_size<E>();
+    static inline constinit uint8_t DATA_BUFFER[required_data_buffer_size]{};
+    static size_t get_offset(E::enum_type e);
+
     template <class T>
-    static bool set_if_changed(void* dst, const T& src, size_t size);
+    static bool set_if_changed(void *dst, const T &src, size_t size);
+
+    // INITIALIZATION RELATED
+    static inline bool s_is_initialized = false;
+
+    // OBSERVER CALLBACK
+    static inline observer_f observer = nullptr;
+    static inline void *observer_user_data = nullptr;
+
+    // SYNCHRONIZATION
+    static SHOOBY_MUTEX_TYPE s_mutex;
+
+    // BACKEND
 };
 
 #include "shooby_db_inl.hpp"
