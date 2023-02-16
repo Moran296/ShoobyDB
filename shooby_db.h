@@ -36,7 +36,7 @@ public:
     static T Get(E::enum_type e);
 
     template <class T>
-    static void Set(E::enum_type e, const T &t);
+    static bool Set(E::enum_type e, const T &t);
 
     template <class Visitor>
     static void VisitRaw(Visitor &&visitor) {
@@ -54,6 +54,9 @@ private:
     static size_t get_offset(E::enum_type e);
     static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
     static size_t get_size(E::enum_type e) { return E::META_MAP[e].size; }
+
+    template <class T>
+    static bool set_if_changed(void* dst, const T& src, size_t size);
 };
 
 #include "shooby_db_inl.hpp"

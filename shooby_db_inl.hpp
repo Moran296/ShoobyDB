@@ -87,7 +87,7 @@ T ShoobyDB<E>::Get(E::enum_type e)
 
 template <EnumMetaMap E>
 template <class T>
-void ShoobyDB<E>::Set(E::enum_type e, const T &t)
+bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
 {
     using raw_type = std::decay_t<T>;
 
@@ -108,13 +108,10 @@ void ShoobyDB<E>::Set(E::enum_type e, const T &t)
             if (sizeof(std::remove_pointer_t<T>) != get_size(e))
                 ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
         }
-
-        memcpy(DATA_BUFFER + get_offset(e), t, get_size(e));
-        return;
     }
 
     // case for blobs
-    if constexpr (not std::is_arithmetic_v<T>)
+    else if constexpr (not std::is_arithmetic_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
@@ -131,5 +128,28 @@ void ShoobyDB<E>::Set(E::enum_type e, const T &t)
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
-    memcpy(DATA_BUFFER + get_offset(e), &t, get_size(e));
+    bool changed = set_if_changed(DATA_BUFFER + get_offset(e), t, get_size(e));
+    return changed;
+}
+
+template <EnumMetaMap E>
+template <class T>
+bool ShoobyDB<E>::set_if_changed(void* dst, const T& src, size_t size) {
+    using raw_type = std::decay_t<T>;
+
+    if constexpr (std::is_pointer_v<raw_type>) {
+        if (memcmp(dst, src, size) == 0) {
+            return false;
+        }
+
+        memcpy(dst, src, size);
+        return true;
+    } else {
+        if (memcmp(dst, &src, size) == 0) {
+            return false;
+        }
+
+        memcpy(dst, &src, size);
+        return true;
+    }
 }
