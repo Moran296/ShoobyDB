@@ -26,26 +26,15 @@
 #define META_MAP_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
     [ENUM] = {#ENUM, &DEFAULT_INSTANCE},
 
-#define SHOOBY_META_MAP_END                        \
-    }                                              \
-    ;                                              \
-    static constexpr size_t required_buffer_size() \
-    {                                              \
-        size_t size = 0;                           \
-        for (size_t i = 0; i < NUM; i++)           \
-        {                                          \
-            size += META_MAP[i].size;              \
-        }                                          \
-        return size;                               \
-    }                                              \
-    }                                              \
-    ;
+#define SHOOBY_META_MAP_END  };};
 
 /*
 
-USAGE:
+================= USAGE =================
+
 define a metamap for a database named "Shooby"
 
+** DEFINITION **
 //1. define the metamap name
 DEFINE_SHOOBY_META_MAP(Shooby)
 //2. define the enums
@@ -64,9 +53,34 @@ META_MAP_STRING(STRING, "WHATEVER", 32)
 META_MAP_BLOB(BLOB, BlobClass, some_blob_class_instance)
 SHOOBY_META_MAP_END
 
+You could also define the class yourself as long as it implements EnumMetaMap concept:
+struct Shooby
+{
+    static constexpr const char *name = "shooby"; // < must be defined >
+
+    enum enum_type // < enum named enum_type must be defined >
+    {
+        NUMBER,
+        BOOL,
+        STRING,
+        BLOB,
+        NUM  // < enum count NUM must be defined >
+    };
+
+    // < static inline constexpr MetaData META_MAP[enum_type::NUM] must be defined >
+    static inline constexpr MetaData META_MAP[enum_type::NUM] =
+    {
+        [NUMBER] = {"NUMBER", uint16_t(250)},
+        [BOOL] = {"BOOL", bool(true)},
+        [STRING] = {"STRING", 32, "WHATEVER"},
+        [BLOB] = {"BLOB", &some_blob_class_instance},
+    };
+
+    // You can also add any other members you want if it helps your implementation
+};
 
 
-
+** USAGE **
 //4. use the metamap
 ShoobyDB<Shooby>::Init();
 auto num = ShoobyDB<Shooby>::Get<uint16_t>(Shooby::NUMBER);

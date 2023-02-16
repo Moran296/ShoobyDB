@@ -19,12 +19,27 @@ concept Arithmetic = std::is_arithmetic_v<T>;
 template <class T>
 concept EnumMetaMap = requires(T) {
     typename T::enum_type;
+    requires std::is_enum_v<typename T::enum_type>;
     T::enum_type::NUM > 0;
-    { T::required_buffer_size() } -> std::same_as<size_t>;
+    { T::name } -> std::convertible_to<const char *>;
     { T::META_MAP[0].size } -> std::convertible_to<size_t>;
     { T::META_MAP[0].name } -> std::convertible_to<const char *>;
     { T::META_MAP[0].default_val} -> std::convertible_to<value_variant_t>;
 };
+
+// ================== UTILITY FUNCTIONS =================
+
+template <EnumMetaMap T>
+static consteval size_t required_buffer_size()
+{
+    size_t size = 0;
+    for (size_t i = 0; i < T::NUM; i++)
+    {
+        size += T::META_MAP[i].size;
+    }
+
+    return size;
+}
 
 //================ UTILITY CLASSES =================
 

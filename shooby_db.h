@@ -38,8 +38,18 @@ public:
     template <class T>
     static void Set(E::enum_type e, const T &t);
 
+    template <class Visitor>
+    static void VisitRaw(Visitor &&visitor) {
+        for (size_t i = 0; i < E::NUM; ++i)
+        {
+            typename E::enum_type e = static_cast<E::enum_type>(i);
+            visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
+        }
+    }
+
 private:
-    static inline constinit uint8_t DATA_BUFFER[E::required_buffer_size()]{};
+    static inline constexpr size_t required_data_buffer_size = required_buffer_size<E>();
+    static inline constinit uint8_t DATA_BUFFER[required_data_buffer_size]{};
 
     static size_t get_offset(E::enum_type e);
     static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
