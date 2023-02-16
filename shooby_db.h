@@ -2,7 +2,7 @@
 #define _SHOOBY_DB_H_
 
 #include "shooby_utilities.h"
-#include <cassert>
+#include "shooby_config.h"
 #include <cstring>
 
 // ================== META DATA CLASS =================
@@ -17,7 +17,7 @@ struct MetaData
     template <class T>
     consteval MetaData(const char *n, const T *def_blob, size_t s = sizeof(T)) : size(s), name(n), default_val((const void *)def_blob)
     {
-        assert(sizeof(T) == size);
+        SHOOBY_ASSERT(sizeof(T) == size);
     }
 
     const size_t size;

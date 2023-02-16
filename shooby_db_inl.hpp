@@ -1,6 +1,4 @@
 
-#include <iostream> //remove
-
 // reset buffer to default!
 template <EnumMetaMap E>
 void ShoobyDB<E>::Reset()
@@ -47,7 +45,7 @@ T ShoobyDB<E>::Get(E::enum_type e)
     if constexpr (std::is_same_v<T, const char *>)
     {
         if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
-            std::cout << " ** type mismatch!**not a string" << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
 
         return (T)(DATA_BUFFER + get_offset(e));
     }
@@ -59,28 +57,28 @@ T ShoobyDB<E>::Get(E::enum_type e)
         static_assert(std::is_const_v<std::remove_pointer_t<T>>, "can't provide pointer to nonconst buffer area!");
 
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            std::cout << " ** type mismatch!** not a blob pointer" << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
 
         return (T)(DATA_BUFFER + get_offset(e));
 
-        // case for blobs
     }
+
+    // case for blobs
     else if constexpr (not std::is_arithmetic_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            std::cout << " ** type mismatch!** " << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
 
         if (sizeof(T) != get_size(e))
-            std::cout << " ** blob size mismatch!** " << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
 
-        // case for arithmetics
     }
+
+    // case for arithmetics
     else
     {
         if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-        {
-            std::cout << " ** type mismatch! integral ** " << std::endl;
-        }
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
     memcpy(&t, DATA_BUFFER + get_offset(e), get_size(e));
@@ -99,15 +97,16 @@ void ShoobyDB<E>::Set(E::enum_type e, const T &t)
         if constexpr (std::is_same_v<char *, raw_type>)
         {
             if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
-                std::cout << " ** type mismatch!** not a string" << std::endl;
-            // case for blob pointers
+                ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
         }
+
+        // case for blob pointers
         else
         {
             if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-                std::cout << " ** type mismatch!** not a blob pointer" << std::endl;
+                ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
             if (sizeof(std::remove_pointer_t<T>) != get_size(e))
-                std::cout << " ** blob size mismatch!** " << std::endl;
+                ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
         }
 
         memcpy(DATA_BUFFER + get_offset(e), t, get_size(e));
@@ -118,19 +117,18 @@ void ShoobyDB<E>::Set(E::enum_type e, const T &t)
     if constexpr (not std::is_arithmetic_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            std::cout << " ** type mismatch!** " << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
 
         if (sizeof(T) != get_size(e))
-            std::cout << " ** blob size mismatch!** " << std::endl;
+            ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
 
-        // case for arithmetics
     }
+
+    // case for arithmetics
     else
     {
         if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-        {
-            std::cout << " ** type mismatch! integral ** " << std::endl;
-        }
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
     memcpy(DATA_BUFFER + get_offset(e), &t, get_size(e));
