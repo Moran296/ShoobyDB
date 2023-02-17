@@ -13,15 +13,15 @@ template <EnumMetaMap E>
 void DB<E>::Init(Backend &&backend)
 {
     SHOOBY_MUTEX_INIT(s_mutex);
-    backend = std::move(backend);
+    s_backend = std::move(backend);
 
     Reset();
-    if (backend.reader != nullptr)
+    if (s_backend.reader != nullptr)
     {
         for (int i = 0; i < E::NUM; i++)
         {
             typename E::enum_type e = static_cast<E::enum_type>(i);
-            backend.reader(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
+            s_backend.reader(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), s_backend.user_data);
         }
     }
 
@@ -147,7 +147,7 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     if constexpr (std::is_pointer_v<raw_type>)
     {
         // case for strings
-        if constexpr (std::is_same_v<char *, raw_type>)
+        if constexpr (std::is_same_v<const char *, raw_type> || std::is_same_v<char *, raw_type>)
         {
             if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
                 ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
@@ -189,8 +189,11 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     {
         Lock lock(s_mutex);
         changed = set_if_changed(DATA_BUFFER + get_offset(e), t, size);
-        if (changed && backend.writer != nullptr)
-            backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
+        if (changed && s_backend.writer != nullptr)
+        {
+            SHOOBY_DEBUG_PRINT("writing one value to backend...\n");
+            s_backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), s_backend.user_data);
+        }
     }
 
     if (changed && observer != nullptr)

@@ -19,7 +19,7 @@ namespace Shooby
         template <class T>
         consteval MetaData(const char *n, const T *def_blob, size_t s = sizeof(T)) : size(s), name(n), default_val((const void *)def_blob)
         {
-            SHOOBY_ASSERT(sizeof(T) == size);
+            SHOOBY_ASSERT(sizeof(T) == size, "blob size mismatch");
         }
 
         const size_t size;
@@ -30,7 +30,7 @@ namespace Shooby
     struct Backend
     {
         typedef void (*Writer)(const char *e_name, const void *data, size_t size, void *user_data);
-        typedef void (*Reader)(const char *e_name, const void *data, size_t size, void *user_data);
+        typedef void (*Reader)(const char *e_name, void *data, size_t size, void *user_data);
 
         Writer writer{};
         Reader reader{};
@@ -103,7 +103,7 @@ namespace Shooby
         static inline SHOOBY_MUTEX_TYPE s_mutex{};
 
         // BACKEND
-        static inline Backend backend{};
+        static inline Backend s_backend{};
     };
 
 #include "shooby_db_inl.hpp"
