@@ -5,6 +5,7 @@
 #include <concepts>
 #include <variant>
 #include <cstdint>
+#include "shooby_config.h"
 
 //================ UTILITY ALIASES =================
 
@@ -15,6 +16,12 @@ using size_t = std::size_t;
 
 template <class T>
 concept Arithmetic = std::is_arithmetic_v<T>;
+
+template <class T>
+concept Pointer = std::is_pointer_v<T>;
+
+template <class T>
+concept NotPointer = not Pointer<T>;
 
 template <class T>
 concept EnumMetaMap = requires(T) {
@@ -67,5 +74,18 @@ struct Overload : Ts...
         [](auto arg) { }}, v);
 
 */
+
+class ShoobyLock {
+public:
+    ShoobyLock(SHOOBY_MUTEX_TYPE& m) : locked(m) { SHOOBY_LOCK(locked); }
+    ~ShoobyLock() { SHOOBY_UNLOCK(locked); }
+
+    ShoobyLock(const ShoobyLock &) = delete;
+    ShoobyLock &operator=(const ShoobyLock &) = delete;
+    ShoobyLock(ShoobyLock &&) = delete;
+    ShoobyLock &operator=(ShoobyLock &&) = delete;
+private:
+    SHOOBY_MUTEX_TYPE& locked;
+};
 
 #endif

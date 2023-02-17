@@ -44,34 +44,15 @@ size_t ShoobyDB<E>::get_offset(E::enum_type e)
 }
 
 template <EnumMetaMap E>
-template <class T>
+template <NotPointer T>
 T ShoobyDB<E>::Get(E::enum_type e)
 {
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
     T t;
 
-    // case for strings
-    if constexpr (std::is_same_v<T, const char *>)
-    {
-        if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
-
-        return (T)(DATA_BUFFER + get_offset(e));
-    }
-
-    // case for const pointers
-    else if constexpr (std::is_pointer_v<T>)
-    {
-        // Do not return non const pointers to the buffer,user might use it incorrectly!
-        static_assert(std::is_const_v<std::remove_pointer_t<T>>, "can't provide pointer to nonconst buffer area!");
-
-        if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
-
-        return (T)(DATA_BUFFER + get_offset(e));
-    }
-
     // case for blobs
-    else if constexpr (not std::is_arithmetic_v<T>)
+    if constexpr (not std::is_arithmetic_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
@@ -92,10 +73,42 @@ T ShoobyDB<E>::Get(E::enum_type e)
 }
 
 template <EnumMetaMap E>
+template <Pointer T>
+T ShoobyDB<E>::Get(E::enum_type e)
+{
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
+
+    // case for strings
+    // TODO - this is still unsafe - we get a pointer to the buffer, but the buffer can be changed at any time!
+    if constexpr (std::is_same_v<T, const char *>)
+    {
+        if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
+
+        return (T)(DATA_BUFFER + get_offset(e));
+    }
+
+    // case for const pointers
+    // TODO - this is still unsafe - we get a pointer to the buffer, but the buffer can be changed at any time!
+    else
+    {
+        // Do not return non const pointers to the buffer,user might use it incorrectly!
+        static_assert(std::is_const_v<std::remove_pointer_t<T>>, "can't provide pointer to nonconst buffer area!");
+
+        if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
+
+        return (T)(DATA_BUFFER + get_offset(e));
+    }
+}
+
+template <EnumMetaMap E>
 template <class T>
 bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
 {
     using raw_type = std::decay_t<T>;
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
 
     if constexpr (std::is_pointer_v<raw_type>)
     {
@@ -142,6 +155,7 @@ template <class T>
 bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
 {
     using raw_type = std::decay_t<T>;
+    ShoobyLock lock(s_mutex);
 
     if constexpr (std::is_pointer_v<raw_type>)
     {
@@ -169,6 +183,8 @@ template <EnumMetaMap E>
 template <class Visitor>
 void ShoobyDB<E>::VisitRaw(Visitor &&visitor)
 {
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
     for (size_t i = 0; i < E::NUM; ++i)
     {
         typename E::enum_type e = static_cast<E::enum_type>(i);
@@ -179,6 +195,8 @@ void ShoobyDB<E>::VisitRaw(Visitor &&visitor)
 template <EnumMetaMap E>
 void ShoobyDB<E>::SetObserver(observer_f f, void *user_data)
 {
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
     observer = f;
     observer_user_data = user_data;
 }

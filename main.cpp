@@ -31,7 +31,7 @@ int main(void)
     using namespace std;
     using enum Shooby::enum_type;
 
-    ShoobyDB<Shooby>::Reset();
+    ShoobyDB<Shooby>::Init();
     auto str = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
     cout << "str: " << str << endl;
 
@@ -39,7 +39,6 @@ int main(void)
 
     str = ShoobyDB<Shooby>::Get<const char *>(Shooby::STRING);
     cout << "str: " << str << endl;
-
 
     return 0;
 }

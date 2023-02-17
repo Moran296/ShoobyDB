@@ -34,7 +34,10 @@ public:
     static void Init();
     static void Reset();
 
-    template <class T>
+    template <NotPointer T>
+    static T Get(E::enum_type e);
+
+    template <Pointer T>
     static T Get(E::enum_type e);
 
     template <class T>
@@ -71,7 +74,7 @@ private:
     static inline void *observer_user_data = nullptr;
 
     // SYNCHRONIZATION
-    static SHOOBY_MUTEX_TYPE s_mutex;
+    static inline SHOOBY_MUTEX_TYPE s_mutex{};
 
     // BACKEND
 };
