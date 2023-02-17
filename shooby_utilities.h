@@ -30,22 +30,14 @@ namespace Shooby
 
     template <class T>
     concept EnumMetaMap = requires(T) {
-                              typename T::enum_type;
-                              requires std::is_enum_v<typename T::enum_type>;
-                              T::enum_type::NUM > 0;
-                              {
-                                  T::name
-                                  } -> std::convertible_to<const char *>;
-                              {
-                                  T::META_MAP[0].size
-                                  } -> std::convertible_to<size_t>;
-                              {
-                                  T::META_MAP[0].name
-                                  } -> std::convertible_to<const char *>;
-                              {
-                                  T::META_MAP[0].default_val
-                                  } -> std::convertible_to<value_variant_t>;
-                          };
+        typename T::enum_type;
+        requires std::is_enum_v<typename T::enum_type>;
+        T::enum_type::NUM > 0;
+        { T::name } -> std::convertible_to<const char *>;
+        { T::META_MAP[0].size } -> std::convertible_to<size_t>;
+        { T::META_MAP[0].name } -> std::convertible_to<const char *>;
+        { T::META_MAP[0].default_val } -> std::convertible_to<value_variant_t>;
+    };
 
     // ================== UTILITY FUNCTIONS =================
 
