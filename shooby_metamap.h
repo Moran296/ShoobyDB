@@ -15,8 +15,8 @@
         NUM               \
     };
 
-#define SHOOBY_META_MAP_START                                 \
-    static inline constexpr MetaData META_MAP[enum_type::NUM] \
+#define SHOOBY_META_MAP_START                                         \
+    static inline constexpr Shooby::MetaData META_MAP[enum_type::NUM] \
     {
 
 #define META_MAP_INTEGRAL(ENUM, TYPE, DEFAULT) \
@@ -26,7 +26,11 @@
 #define META_MAP_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
     [ENUM] = {#ENUM, &DEFAULT_INSTANCE},
 
-#define SHOOBY_META_MAP_END  };};
+#define SHOOBY_META_MAP_END \
+    }                       \
+    ;                       \
+    }                       \
+    ;
 
 /*
 ================= USAGE =================
@@ -35,7 +39,7 @@ define a metamap for a database named "Shooby"
 
 ** DEFINITION **
 //1. define the metamap name
-DEFINE_SHOOBY_META_MAP(Shooby)
+DEFINE_SHOOBY_META_MAP(Dooby)
 //2. define the enums
 SHOOBY_ENUMS(
     NUMBER,
@@ -53,9 +57,9 @@ META_MAP_BLOB(BLOB, BlobClass, some_blob_class_instance)
 SHOOBY_META_MAP_END
 
 You could also define the class yourself as long as it implements EnumMetaMap concept:
-struct Shooby
+struct Doobey
 {
-    static constexpr const char *name = "shooby"; // < must be defined >
+    static constexpr const char *name = "Doobey"; // < must be defined >
 
     enum enum_type // < enum named enum_type must be defined >
     {
@@ -67,7 +71,7 @@ struct Shooby
     };
 
     // < static inline constexpr MetaData META_MAP[enum_type::NUM] must be defined >
-    static inline constexpr MetaData META_MAP[enum_type::NUM] = {       //This line is the same as SHOOBY_META_MAP_START
+    static inline constexpr Shooby::MetaData META_MAP[enum_type::NUM] = {       //This line is the same as SHOOBY_META_MAP_START
         [NUMBER] = {"NUMBER", uint16_t(250)},
         [BOOL] = {"BOOL", bool(true)},
         [STRING] = {"STRING", 32, "WHATEVER"},
@@ -80,13 +84,13 @@ struct Shooby
 
 ** USAGE **
 //4. use the metamap
-ShoobyDB<Shooby>::Init();
-auto num = ShoobyDB<Shooby>::Get<uint16_t>(Shooby::NUMBER);
+DB<Shooby>::Init();
+auto num = DB<Doobey>::Get<uint16_t>(Doobey::NUMBER);
 assert(num == 250);
 
-ShoobyDB<Shooby>::Set(Shooby::NUMBER, uint16_t(500));
+DB<Shooby>::Set(Doobey::NUMBER, uint16_t(500));
 
-num = ShoobyDB<Shooby>::Get<uint16_t>(Shooby::NUMBER);
+num = DB<Doobey>::Get<uint16_t>(Doobey::NUMBER);
 assert(num == 500);
 */
 

@@ -6,103 +6,108 @@
 
 // ================== META DATA CLASS =================
 
-struct MetaData
+namespace Shooby
 {
-    template <Arithmetic T>
-    consteval MetaData(const char *n, T num_default) : size(sizeof(T)), name(n), default_val(num_default) {}
 
-    consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
-
-    template <class T>
-    consteval MetaData(const char *n, const T *def_blob, size_t s = sizeof(T)) : size(s), name(n), default_val((const void *)def_blob)
+    struct MetaData
     {
-        SHOOBY_ASSERT(sizeof(T) == size);
-    }
+        template <Arithmetic T>
+        consteval MetaData(const char *n, T num_default) : size(sizeof(T)), name(n), default_val(num_default) {}
 
-    const size_t size;
-    const char *name;
-    const value_variant_t default_val;
-};
+        consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
 
-struct Backend
-{
-    typedef void (*Writer)(const char *e_name, const void *data, size_t size, void *user_data);
-    typedef void (*Reader)(const char *e_name, const void *data, size_t size, void *user_data);
+        template <class T>
+        consteval MetaData(const char *n, const T *def_blob, size_t s = sizeof(T)) : size(s), name(n), default_val((const void *)def_blob)
+        {
+            SHOOBY_ASSERT(sizeof(T) == size);
+        }
 
-    Writer writer{};
-    Reader reader{};
-    void *user_data{};
-};
+        const size_t size;
+        const char *name;
+        const value_variant_t default_val;
+    };
 
-template <EnumMetaMap E>
-class ShoobyDB
-{
-public:
-    typedef void (*observer_f)(E::enum_type, void *);
+    struct Backend
+    {
+        typedef void (*Writer)(const char *e_name, const void *data, size_t size, void *user_data);
+        typedef void (*Reader)(const char *e_name, const void *data, size_t size, void *user_data);
 
-    static void Init();
-    static void Init(Backend &&backend);
+        Writer writer{};
+        Reader reader{};
+        void *user_data{};
+    };
 
-    static void Reset();
+    template <EnumMetaMap E>
+    class DB
+    {
+    public:
+        typedef void (*observer_f)(E::enum_type, void *);
 
-    template <NotPointer T>
-    static T Get(E::enum_type e);
+        static void Init();
+        static void Init(Backend &&backend);
 
-    /*
-    returns a const pointer to the internal buffer.
-    it can still be modified in another thread, so be careful.
+        static void Reset();
 
-    Best practice for strings is to use the GetString() function.
-    */
-    template <Pointer T>
-    static T Get(E::enum_type e);
+        template <NotPointer T>
+        static T Get(E::enum_type e);
 
-    template <E::enum_type e>
-    static FixedString<E::META_MAP[e].size> GetString();
+        /*
+        returns a const pointer to the internal buffer.
+        it can still be modified in another thread, so be careful.
 
-    template <class T>
-    static bool Set(E::enum_type e, const T &t);
+        Best practice for strings is to use the GetString() function.
+        */
+        template <Pointer T>
+        static T Get(E::enum_type e);
 
-    template <class Visitor>
-    static void VisitRawEach(Visitor &visitor);
+        template <E::enum_type e>
+        static FixedString<E::META_MAP[e].size> GetString();
 
-    template <class Visitor>
-    static void VisitRaw(E::enum_type e, Visitor &visitor);
+        template <class T>
+        static bool Set(E::enum_type e, const T &t);
 
-    static void SetObserver(observer_f f, void *user_data = nullptr);
+        template <class Visitor>
+        static void VisitRawEach(Visitor &visitor);
 
-    static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
-    static size_t get_size(E::enum_type e) { return E::META_MAP[e].size; }
+        template <class Visitor>
+        static void VisitRaw(E::enum_type e, Visitor &visitor);
 
-private:
-    // CTORS
-    ShoobyDB(const ShoobyDB &) = delete;
-    ShoobyDB &operator=(const ShoobyDB &) = delete;
-    ShoobyDB(ShoobyDB &&) = delete;
-    ShoobyDB &operator=(ShoobyDB &&) = delete;
+        static void SetObserver(observer_f f, void *user_data = nullptr);
 
-    // DATA RELATED
-    static inline constexpr size_t required_data_buffer_size = required_buffer_size<E>();
-    static inline constinit uint8_t DATA_BUFFER[required_data_buffer_size]{};
-    static size_t get_offset(E::enum_type e);
+        static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
+        static size_t get_size(E::enum_type e) { return E::META_MAP[e].size; }
 
-    template <class T>
-    static bool set_if_changed(void *dst, const T &src, size_t size);
+    private:
+        // CTORS
+        DB(const DB &) = delete;
+        DB &operator=(const DB &) = delete;
+        DB(DB &&) = delete;
+        DB &operator=(DB &&) = delete;
 
-    // INITIALIZATION RELATED
-    static constinit inline bool s_is_initialized = false;
+        // DATA RELATED
+        static inline constexpr size_t required_data_buffer_size = required_buffer_size<E>();
+        static inline constinit uint8_t DATA_BUFFER[required_data_buffer_size]{};
+        static size_t get_offset(E::enum_type e);
 
-    // OBSERVER CALLBACK
-    static inline observer_f observer = nullptr;
-    static inline void *observer_user_data = nullptr;
+        template <class T>
+        static bool set_if_changed(void *dst, const T &src, size_t size);
 
-    // SYNCHRONIZATION
-    static inline SHOOBY_MUTEX_TYPE s_mutex{};
+        // INITIALIZATION RELATED
+        static constinit inline bool s_is_initialized = false;
 
-    // BACKEND
-    static inline Backend backend{};
-};
+        // OBSERVER CALLBACK
+        static inline observer_f observer = nullptr;
+        static inline void *observer_user_data = nullptr;
+
+        // SYNCHRONIZATION
+        static inline SHOOBY_MUTEX_TYPE s_mutex{};
+
+        // BACKEND
+        static inline Backend backend{};
+    };
 
 #include "shooby_db_inl.hpp"
+
+} // namespace Shooby
 
 #endif

@@ -1,6 +1,6 @@
 
 template <EnumMetaMap E>
-void ShoobyDB<E>::Init()
+void DB<E>::Init()
 {
     SHOOBY_MUTEX_INIT(s_mutex);
     Reset();
@@ -9,7 +9,7 @@ void ShoobyDB<E>::Init()
 }
 
 template <EnumMetaMap E>
-void ShoobyDB<E>::Init(Backend &&backend)
+void DB<E>::Init(Backend &&backend)
 {
     SHOOBY_MUTEX_INIT(s_mutex);
     backend = std::move(backend);
@@ -29,7 +29,7 @@ void ShoobyDB<E>::Init(Backend &&backend)
 
 // reset buffer to default!
 template <EnumMetaMap E>
-void ShoobyDB<E>::Reset()
+void DB<E>::Reset()
 {
     size_t offset = 0;
 
@@ -50,7 +50,7 @@ void ShoobyDB<E>::Reset()
 }
 
 template <EnumMetaMap E>
-size_t ShoobyDB<E>::get_offset(E::enum_type e)
+size_t DB<E>::get_offset(E::enum_type e)
 {
     int offset = 0;
     for (int i = 0; i < e; i++)
@@ -63,9 +63,9 @@ size_t ShoobyDB<E>::get_offset(E::enum_type e)
 
 template <EnumMetaMap E>
 template <NotPointer T>
-T ShoobyDB<E>::Get(E::enum_type e)
+T DB<E>::Get(E::enum_type e)
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     T t;
 
     // case for blobs
@@ -92,9 +92,9 @@ T ShoobyDB<E>::Get(E::enum_type e)
 
 template <EnumMetaMap E>
 template <Pointer T>
-T ShoobyDB<E>::Get(E::enum_type e)
+T DB<E>::Get(E::enum_type e)
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     ShoobyLock lock(s_mutex);
 
     // case for strings
@@ -121,9 +121,9 @@ T ShoobyDB<E>::Get(E::enum_type e)
 
 template <EnumMetaMap E>
 template <E::enum_type e>
-FixedString<E::META_MAP[e].size> ShoobyDB<E>::GetString()
+FixedString<E::META_MAP[e].size> DB<E>::GetString()
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     ShoobyLock lock(s_mutex);
 
     if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
@@ -134,10 +134,11 @@ FixedString<E::META_MAP[e].size> ShoobyDB<E>::GetString()
 
 template <EnumMetaMap E>
 template <class T>
-bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
+bool DB<E>::Set(E::enum_type e, const T &t)
 {
     using raw_type = std::decay_t<T>;
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
+    size_t size = get_size(e);
 
     if constexpr (std::is_pointer_v<raw_type>)
     {
@@ -146,6 +147,11 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
         {
             if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
                 ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
+
+            if (strlen(t) >= size)
+                ON_SHOOBY_TYPE_MISMATCH("string too long!");
+
+            size = strlen(t) + 1;
         }
 
         // case for blob pointers
@@ -172,13 +178,13 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
     else
     {
         if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
+            ON_SHOOBY_TYPE_MISMATCH("arithmetic type mismatch!");
     }
 
     bool changed = false;
     {
         ShoobyLock lock(s_mutex);
-        changed = set_if_changed(DATA_BUFFER + get_offset(e), t, get_size(e));
+        changed = set_if_changed(DATA_BUFFER + get_offset(e), t, size);
         if (changed && backend.writer != nullptr)
             backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
     }
@@ -191,12 +197,12 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
 
 template <EnumMetaMap E>
 template <class T>
-bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
+bool DB<E>::set_if_changed(void *dst, const T &src, size_t size)
 {
     using raw_type = std::decay_t<T>;
     if constexpr (std::is_pointer_v<raw_type>)
     {
-        if (memcmp(dst, src, size) == 0)
+        if (memcmp(dst, static_cast<const void *>(src), size) == 0)
             return false;
 
         memcpy(dst, src, size);
@@ -214,9 +220,9 @@ bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
 
 template <EnumMetaMap E>
 template <class Visitor>
-void ShoobyDB<E>::VisitRawEach(Visitor &visitor)
+void DB<E>::VisitRawEach(Visitor &visitor)
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     ShoobyLock lock(s_mutex);
     for (size_t i = 0; i < E::NUM; ++i)
     {
@@ -227,17 +233,17 @@ void ShoobyDB<E>::VisitRawEach(Visitor &visitor)
 
 template <EnumMetaMap E>
 template <class Visitor>
-void ShoobyDB<E>::VisitRaw(E::enum_type e, Visitor &visitor)
+void DB<E>::VisitRaw(E::enum_type e, Visitor &visitor)
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     ShoobyLock lock(s_mutex);
     visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
 }
 
 template <EnumMetaMap E>
-void ShoobyDB<E>::SetObserver(observer_f f, void *user_data)
+void DB<E>::SetObserver(observer_f f, void *user_data)
 {
-    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     ShoobyLock lock(s_mutex);
     observer = f;
     observer_user_data = user_data;
