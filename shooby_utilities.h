@@ -5,6 +5,7 @@
 #include <concepts>
 #include <variant>
 #include <cstdint>
+#include <cstring>
 #include "shooby_config.h"
 
 //================ UTILITY ALIASES =================
@@ -21,17 +22,17 @@ template <class T>
 concept Pointer = std::is_pointer_v<T>;
 
 template <class T>
-concept NotPointer = not Pointer<T>;
+concept NotPointer = not
+Pointer<T>;
 
 template <class T>
 concept EnumMetaMap = requires(T) {
     typename T::enum_type;
     requires std::is_enum_v<typename T::enum_type>;
-    T::enum_type::NUM > 0;
-    { T::name } -> std::convertible_to<const char *>;
+    T::enum_type::NUM > 0; { T::name } -> std::convertible_to<const char *>;
     { T::META_MAP[0].size } -> std::convertible_to<size_t>;
     { T::META_MAP[0].name } -> std::convertible_to<const char *>;
-    { T::META_MAP[0].default_val} -> std::convertible_to<value_variant_t>;
+    { T::META_MAP[0].default_val } -> std::convertible_to<value_variant_t>;
 };
 
 // ================== UTILITY FUNCTIONS =================
@@ -49,6 +50,33 @@ static consteval size_t required_buffer_size()
 }
 
 //================ UTILITY CLASSES =================
+
+template <size_t N>
+class FixedString
+{
+public:
+    FixedString() = default;
+    FixedString(const char *str) { std::strncpy(buffer, str, N); }
+    FixedString(const FixedString &other) { std::strncpy(buffer, other.buffer, N); }
+    FixedString(FixedString &&other) { buffer = std::move(other.buffer); }
+
+    FixedString &operator=(const FixedString &other)
+    {
+        std::strncpy(buffer, other.buffer, N);
+        return *this;
+    }
+
+    FixedString &operator=(FixedString &&other)
+    {
+        buffer = std::move(other.buffer);
+        return *this;
+    }
+
+    const char *c_str() const { return buffer; }
+
+private:
+    char buffer[N]{};
+};
 
 template <typename... Ts>
 struct Overload : Ts...
@@ -75,17 +103,19 @@ struct Overload : Ts...
 
 */
 
-class ShoobyLock {
+class ShoobyLock
+{
 public:
-    ShoobyLock(SHOOBY_MUTEX_TYPE& m) : locked(m) { SHOOBY_LOCK(locked); }
+    ShoobyLock(SHOOBY_MUTEX_TYPE &m) : locked(m) { SHOOBY_LOCK(locked); }
     ~ShoobyLock() { SHOOBY_UNLOCK(locked); }
 
     ShoobyLock(const ShoobyLock &) = delete;
     ShoobyLock &operator=(const ShoobyLock &) = delete;
     ShoobyLock(ShoobyLock &&) = delete;
     ShoobyLock &operator=(ShoobyLock &&) = delete;
+
 private:
-    SHOOBY_MUTEX_TYPE& locked;
+    SHOOBY_MUTEX_TYPE &locked;
 };
 
 #endif

@@ -48,7 +48,6 @@ template <NotPointer T>
 T ShoobyDB<E>::Get(E::enum_type e)
 {
     SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
-    ShoobyLock lock(s_mutex);
     T t;
 
     // case for blobs
@@ -68,6 +67,7 @@ T ShoobyDB<E>::Get(E::enum_type e)
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
+    ShoobyLock lock(s_mutex);
     memcpy(&t, DATA_BUFFER + get_offset(e), get_size(e));
     return t;
 }
@@ -80,7 +80,6 @@ T ShoobyDB<E>::Get(E::enum_type e)
     ShoobyLock lock(s_mutex);
 
     // case for strings
-    // TODO - this is still unsafe - we get a pointer to the buffer, but the buffer can be changed at any time!
     if constexpr (std::is_same_v<T, const char *>)
     {
         if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
@@ -90,7 +89,6 @@ T ShoobyDB<E>::Get(E::enum_type e)
     }
 
     // case for const pointers
-    // TODO - this is still unsafe - we get a pointer to the buffer, but the buffer can be changed at any time!
     else
     {
         // Do not return non const pointers to the buffer,user might use it incorrectly!
@@ -101,6 +99,19 @@ T ShoobyDB<E>::Get(E::enum_type e)
 
         return (T)(DATA_BUFFER + get_offset(e));
     }
+}
+
+template <EnumMetaMap E>
+template <E::enum_type e>
+FixedString<E::META_MAP[e].size> ShoobyDB<E>::GetString()
+{
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
+
+    if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
+        ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
+
+    return FixedString<E::META_MAP[e].size>{(const char *)(DATA_BUFFER + get_offset(e))};
 }
 
 template <EnumMetaMap E>
@@ -181,7 +192,7 @@ bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
 
 template <EnumMetaMap E>
 template <class Visitor>
-void ShoobyDB<E>::VisitRaw(Visitor &&visitor)
+void ShoobyDB<E>::VisitRawEach(Visitor &visitor)
 {
     SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
     ShoobyLock lock(s_mutex);
@@ -190,6 +201,15 @@ void ShoobyDB<E>::VisitRaw(Visitor &&visitor)
         typename E::enum_type e = static_cast<E::enum_type>(i);
         visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
     }
+}
+
+template <EnumMetaMap E>
+template <class Visitor>
+void ShoobyDB<E>::VisitRaw(E::enum_type e, Visitor &visitor)
+{
+    SHOOBY_ASSERT(s_is_initialized, "ShoobyDB not initialized!");
+    ShoobyLock lock(s_mutex);
+    visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
 }
 
 template <EnumMetaMap E>

@@ -3,7 +3,6 @@
 
 #include "shooby_utilities.h"
 #include "shooby_config.h"
-#include <cstring>
 
 // ================== META DATA CLASS =================
 
@@ -37,14 +36,26 @@ public:
     template <NotPointer T>
     static T Get(E::enum_type e);
 
+    /*
+    returns a const pointer to the internal buffer.
+    it can still be modified in another thread, so be careful.
+
+    Best practice for strings is to use the GetString() function.
+    */
     template <Pointer T>
     static T Get(E::enum_type e);
+
+    template <E::enum_type e>
+    static FixedString<E::META_MAP[e].size> GetString();
 
     template <class T>
     static bool Set(E::enum_type e, const T &t);
 
     template <class Visitor>
-    static void VisitRaw(Visitor &&visitor);
+    static void VisitRawEach(Visitor &visitor);
+
+    template <class Visitor>
+    static void VisitRaw(E::enum_type e, Visitor &visitor);
 
     static void SetObserver(observer_f f, void *user_data = nullptr);
 
