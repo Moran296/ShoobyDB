@@ -6,6 +6,7 @@ void DB<E>::Init()
     Reset();
 
     s_is_initialized = true;
+    SHOOBY_DEBUG_PRINT("shooby_db: initialized\n");
 }
 
 template <EnumMetaMap E>
@@ -25,6 +26,7 @@ void DB<E>::Init(Backend &&backend)
     }
 
     s_is_initialized = true;
+    SHOOBY_DEBUG_PRINT("shooby_db: initialized with backend\n");
 }
 
 // reset buffer to default!
@@ -47,6 +49,8 @@ void DB<E>::Reset()
 
         offset += size;
     }
+
+    SHOOBY_DEBUG_PRINT("shooby_db: reset\n");
 }
 
 template <EnumMetaMap E>
@@ -85,7 +89,7 @@ T DB<E>::Get(E::enum_type e)
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
     memcpy(&t, DATA_BUFFER + get_offset(e), get_size(e));
     return t;
 }
@@ -95,7 +99,7 @@ template <Pointer T>
 T DB<E>::Get(E::enum_type e)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
 
     // case for strings
     if constexpr (std::is_same_v<T, const char *>)
@@ -124,7 +128,7 @@ template <E::enum_type e>
 FixedString<E::META_MAP[e].size> DB<E>::GetString()
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
 
     if (not std::holds_alternative<const char *>(E::META_MAP[e].default_val))
         ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a string");
@@ -183,7 +187,7 @@ bool DB<E>::Set(E::enum_type e, const T &t)
 
     bool changed = false;
     {
-        ShoobyLock lock(s_mutex);
+        Lock lock(s_mutex);
         changed = set_if_changed(DATA_BUFFER + get_offset(e), t, size);
         if (changed && backend.writer != nullptr)
             backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
@@ -223,7 +227,7 @@ template <class Visitor>
 void DB<E>::VisitRawEach(Visitor &visitor)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
     for (size_t i = 0; i < E::NUM; ++i)
     {
         typename E::enum_type e = static_cast<E::enum_type>(i);
@@ -236,7 +240,7 @@ template <class Visitor>
 void DB<E>::VisitRaw(E::enum_type e, Visitor &visitor)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
     visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
 }
 
@@ -244,7 +248,7 @@ template <EnumMetaMap E>
 void DB<E>::SetObserver(observer_f f, void *user_data)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    ShoobyLock lock(s_mutex);
+    Lock lock(s_mutex);
     observer = f;
     observer_user_data = user_data;
 }
