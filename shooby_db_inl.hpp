@@ -4,7 +4,25 @@ void ShoobyDB<E>::Init()
 {
     SHOOBY_MUTEX_INIT(s_mutex);
     Reset();
-    // Backend load
+
+    s_is_initialized = true;
+}
+
+template <EnumMetaMap E>
+void ShoobyDB<E>::Init(Backend &&backend)
+{
+    SHOOBY_MUTEX_INIT(s_mutex);
+    backend = std::move(backend);
+
+    Reset();
+    if (backend.reader != nullptr)
+    {
+        for (int i = 0; i < E::NUM; i++)
+        {
+            typename E::enum_type e = static_cast<E::enum_type>(i);
+            backend.reader(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
+        }
+    }
 
     s_is_initialized = true;
 }
@@ -157,7 +175,17 @@ bool ShoobyDB<E>::Set(E::enum_type e, const T &t)
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
     }
 
-    bool changed = set_if_changed(DATA_BUFFER + get_offset(e), t, get_size(e));
+    bool changed = false;
+    {
+        ShoobyLock lock(s_mutex);
+        changed = set_if_changed(DATA_BUFFER + get_offset(e), t, get_size(e));
+        if (changed && backend.writer != nullptr)
+            backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), backend.user_data);
+    }
+
+    if (changed && observer != nullptr)
+        observer(e, observer_user_data);
+
     return changed;
 }
 
@@ -166,14 +194,10 @@ template <class T>
 bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
 {
     using raw_type = std::decay_t<T>;
-    ShoobyLock lock(s_mutex);
-
     if constexpr (std::is_pointer_v<raw_type>)
     {
         if (memcmp(dst, src, size) == 0)
-        {
             return false;
-        }
 
         memcpy(dst, src, size);
         return true;
@@ -181,9 +205,7 @@ bool ShoobyDB<E>::set_if_changed(void *dst, const T &src, size_t size)
     else
     {
         if (memcmp(dst, &src, size) == 0)
-        {
             return false;
-        }
 
         memcpy(dst, &src, size);
         return true;

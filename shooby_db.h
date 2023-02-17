@@ -24,13 +24,25 @@ struct MetaData
     const value_variant_t default_val;
 };
 
+struct Backend
+{
+    typedef void (*Writer)(const char *e_name, const void *data, size_t size, void *user_data);
+    typedef void (*Reader)(const char *e_name, const void *data, size_t size, void *user_data);
+
+    Writer writer{};
+    Reader reader{};
+    void *user_data{};
+};
+
 template <EnumMetaMap E>
 class ShoobyDB
 {
 public:
-    typedef void (*observer_f)(E::enum_type, const void *, size_t, void *);
+    typedef void (*observer_f)(E::enum_type, void *);
 
     static void Init();
+    static void Init(Backend &&backend);
+
     static void Reset();
 
     template <NotPointer T>
@@ -88,6 +100,7 @@ private:
     static inline SHOOBY_MUTEX_TYPE s_mutex{};
 
     // BACKEND
+    static inline Backend backend{};
 };
 
 #include "shooby_db_inl.hpp"
