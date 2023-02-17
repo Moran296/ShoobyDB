@@ -64,7 +64,7 @@ private:
     static bool set_if_changed(void *dst, const T &src, size_t size);
 
     // INITIALIZATION RELATED
-    static inline bool s_is_initialized = false;
+    static constinit inline bool s_is_initialized = false;
 
     // OBSERVER CALLBACK
     static inline observer_f observer = nullptr;
