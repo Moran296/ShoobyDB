@@ -72,22 +72,8 @@ T DB<E>::Get(E::enum_type e)
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     T t;
 
-    // case for blobs
-    if constexpr (not std::is_arithmetic_v<T>)
-    {
-        if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
-
-        if (sizeof(T) != get_size(e))
-            ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
-    }
-
-    // case for arithmetics
-    else
-    {
-        if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
-    }
+    if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
+        ON_SHOOBY_TYPE_MISMATCH("type mismatch!");
 
     Lock lock(s_mutex);
     memcpy(&t, DATA_BUFFER + get_offset(e), get_size(e));
@@ -116,7 +102,7 @@ T DB<E>::Get(E::enum_type e)
         // Do not return non const pointers to the buffer,user might use it incorrectly!
         static_assert(std::is_const_v<std::remove_pointer_t<T>>, "can't provide pointer to nonconst buffer area!");
 
-        if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
+        if (not std::holds_alternative<std::remove_pointer_t<T>>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
 
         return (T)(DATA_BUFFER + get_offset(e));
@@ -161,28 +147,17 @@ bool DB<E>::Set(E::enum_type e, const T &t)
         // case for blob pointers
         else
         {
-            if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
+            if (not std::holds_alternative<std::remove_pointer_t<raw_type>>(E::META_MAP[e].default_val))
                 ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob pointer");
             if (sizeof(std::remove_pointer_t<T>) != get_size(e))
                 ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
         }
     }
 
-    // case for blobs
-    else if constexpr (not std::is_arithmetic_v<T>)
-    {
-        if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
-
-        if (sizeof(T) != get_size(e))
-            ON_SHOOBY_TYPE_MISMATCH("blob size mismatch!");
-    }
-
-    // case for arithmetics
     else
     {
         if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("arithmetic type mismatch!");
+            ON_SHOOBY_TYPE_MISMATCH("type mismatch!");
     }
 
     bool changed = false;
@@ -255,15 +230,13 @@ void DB<E>::Visit(E::enum_type e, Visitor &visitor)
 
     size_t offset = get_offset(e);
 
-    value_variant_t val = std::visit(Overload{
-                                         [dst = DATA_BUFFER + offset](const char *t)
-                                         { return value_variant_t((const char *)dst); },
-                                         [dst = DATA_BUFFER + offset](const void *t)
-                                         { return value_variant_t(dst); },
-                                         [dst = DATA_BUFFER + offset](auto t)
-                                         { return value_variant_t(*(decltype(t) *)dst); },
-                                     },
-                                     E::META_MAP[e].default_val);
+    variant_t val = std::visit(Overload{
+                                   [dst = DATA_BUFFER + offset](const char *t)
+                                   { return variant_t((const char *)dst); },
+                                   [dst = DATA_BUFFER + offset](auto t)
+                                   { return variant_t(*(decltype(t) *)dst); },
+                               },
+                               E::META_MAP[e].default_val);
 
     visitor(e, val);
 }

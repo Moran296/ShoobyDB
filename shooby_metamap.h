@@ -15,16 +15,20 @@
         NUM               \
     };
 
-#define SHOOBY_META_MAP_START                                         \
-    static inline constexpr Shooby::MetaData META_MAP[enum_type::NUM] \
+#define REGISTER_BLOBS(...)                            \
+    using meta_data_t = Shooby::MetaData<__VA_ARGS__>; \
+    using variant_t = meta_data_t::variant_t;
+
+#define SHOOBY_META_MAP_START                                    \
+    static inline constexpr meta_data_t META_MAP[enum_type::NUM] \
     {
 
 #define META_MAP_INTEGRAL(ENUM, TYPE, DEFAULT) \
     [ENUM] = {#ENUM, TYPE(DEFAULT)},
 #define META_MAP_STRING(ENUM, DEFAULT, SIZE) \
     [ENUM] = {#ENUM, SIZE, DEFAULT},
-#define META_MAP_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
-    [ENUM] = {#ENUM, &DEFAULT_INSTANCE},
+#define META_MAP_BLOB(ENUM, TYPE) \
+    [ENUM] = {#ENUM, TYPE{}},
 
 #define SHOOBY_META_MAP_END                                   \
     }                                                         \

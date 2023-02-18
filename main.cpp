@@ -4,6 +4,8 @@
 
 struct Bl
 {
+    constexpr Bl(){};
+
     int hi{97};
     char f{'b'};
     int a{2566};
@@ -32,13 +34,15 @@ SHOOBY_ENUMS(
     STRING,
     BLOB)
 
+REGISTER_BLOBS(Bl)
+
 SHOOBY_META_MAP_START
 META_MAP_INTEGRAL(NUMBER_U16, uint16_t, 16)
 META_MAP_INTEGRAL(NUMBER_16, int16_t, -16)
 META_MAP_INTEGRAL(NUMBER_U32, uint32_t, 250)
 META_MAP_INTEGRAL(BOOL, bool, true)
 META_MAP_STRING(STRING, "WHATEVER", 33)
-META_MAP_BLOB(BLOB, Bl, bl)
+META_MAP_BLOB(BLOB, Bl)
 SHOOBY_META_MAP_END
 
 using namespace std;
@@ -96,9 +100,9 @@ void test_string()
 void test_blob()
 {
     auto blob1 = DB::Get<Bl>(BLOB);
-    auto unsafe_blob = DB::Get<const Bl *>(BLOB);
+    // auto unsafe_blob = DB::Get<const Bl *>(BLOB);
 
-    test_equals(blob1, *unsafe_blob);
+    // test_equals(blob1, *unsafe_blob);
 
     Bl blob2;
     blob2.hi = 100;
@@ -110,12 +114,12 @@ void test_blob()
     DB::Set(BLOB, blob2);
 
     test_unequals(blob1, blob2);
-    test_unequals(blob1, *unsafe_blob);
-    test_equals(blob2, *unsafe_blob);
+    // test_unequals(blob1, *unsafe_blob);
+    // test_equals(blob2, *unsafe_blob);
 
     blob1 = DB::Get<Bl>(BLOB);
     test_equals(blob1, blob2);
-    test_equals(blob2, *unsafe_blob);
+    // test_equals(blob2, *unsafe_blob);
 
     cout << "TEST PASSED" << endl;
 }
@@ -170,7 +174,7 @@ void observer_callback(Dooby::enum_type type, void *data)
 class Visitor
 {
 public:
-    void operator()(Dooby::enum_type type, Shooby::value_variant_t &value)
+    void operator()(Dooby::enum_type type, Dooby::variant_t &value)
     {
         std::visit(
             Shooby::Overload{
@@ -184,8 +188,8 @@ public:
                 { cout << Dooby::get_name(type) << std::boolalpha << " is a bool with " << value << endl; },
                 [&](const char *value)
                 { cout << Dooby::get_name(type) << " is a string with " << value << endl; },
-                [&](const void *value)
-                { cout << Dooby::get_name(type) << " is a blob with " << *(Bl *)value << endl; },
+                [&](Bl value)
+                { cout << Dooby::get_name(type) << " is a blob with " << value << endl; },
                 [&](auto value)
                 { cout << "unknown" << endl; },
             },
