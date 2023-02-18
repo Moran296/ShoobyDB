@@ -67,6 +67,12 @@ namespace Shooby
         static bool Set(E::enum_type e, const T &t);
 
         template <class Visitor>
+        static void Visit(E::enum_type e, Visitor &visitor);
+
+        template <class Visitor>
+        static void VisitEach(Visitor &visitor);
+
+        template <class Visitor>
         static void VisitRawEach(Visitor &visitor);
 
         template <class Visitor>

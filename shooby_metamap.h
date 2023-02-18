@@ -26,10 +26,18 @@
 #define META_MAP_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
     [ENUM] = {#ENUM, &DEFAULT_INSTANCE},
 
-#define SHOOBY_META_MAP_END \
-    }                       \
-    ;                       \
-    }                       \
+#define SHOOBY_META_MAP_END                                   \
+    }                                                         \
+    ;                                                         \
+    static inline constexpr const char *get_name(enum_type t) \
+    {                                                         \
+        return META_MAP[t].name;                              \
+    }                                                         \
+    static inline constexpr size_t get_size(enum_type t)      \
+    {                                                         \
+        return META_MAP[t].size;                              \
+    }                                                         \
+    }                                                         \
     ;
 
 /*

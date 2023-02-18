@@ -230,11 +230,10 @@ template <class Visitor>
 void DB<E>::VisitRawEach(Visitor &visitor)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
-    Lock lock(s_mutex);
     for (size_t i = 0; i < E::NUM; ++i)
     {
         typename E::enum_type e = static_cast<E::enum_type>(i);
-        visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
+        VisitRaw(e, visitor);
     }
 }
 
@@ -245,6 +244,41 @@ void DB<E>::VisitRaw(E::enum_type e, Visitor &visitor)
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     Lock lock(s_mutex);
     visitor(e, E::META_MAP[e], DATA_BUFFER + get_offset(e));
+}
+
+template <EnumMetaMap E>
+template <class Visitor>
+void DB<E>::Visit(E::enum_type e, Visitor &visitor)
+{
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
+    Lock lock(s_mutex);
+
+    size_t offset = get_offset(e);
+
+    value_variant_t val = std::visit(Overload{
+                                         [dst = DATA_BUFFER + offset](const char *t)
+                                         { return value_variant_t((const char *)dst); },
+                                         [dst = DATA_BUFFER + offset](const void *t)
+                                         { return value_variant_t(dst); },
+                                         [dst = DATA_BUFFER + offset](auto t)
+                                         { return value_variant_t(*(decltype(t) *)dst); },
+                                     },
+                                     E::META_MAP[e].default_val);
+
+    visitor(e, val);
+}
+
+template <EnumMetaMap E>
+template <class Visitor>
+void DB<E>::VisitEach(Visitor &visitor)
+{
+
+    SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
+    for (size_t i = 0; i < E::NUM; ++i)
+    {
+        typename E::enum_type e = static_cast<E::enum_type>(i);
+        Visit(e, visitor);
+    }
 }
 
 template <EnumMetaMap E>

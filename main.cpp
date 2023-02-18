@@ -25,13 +25,17 @@ Bl bl;
 
 DEFINE_SHOOBY_META_MAP(Dooby)
 SHOOBY_ENUMS(
-    NUMBER,
+    NUMBER_U16,
+    NUMBER_16,
+    NUMBER_U32,
     BOOL,
     STRING,
     BLOB)
 
 SHOOBY_META_MAP_START
-META_MAP_INTEGRAL(NUMBER, uint16_t, 250)
+META_MAP_INTEGRAL(NUMBER_U16, uint16_t, 16)
+META_MAP_INTEGRAL(NUMBER_16, int16_t, -16)
+META_MAP_INTEGRAL(NUMBER_U32, uint32_t, 250)
 META_MAP_INTEGRAL(BOOL, bool, true)
 META_MAP_STRING(STRING, "WHATEVER", 33)
 META_MAP_BLOB(BLOB, Bl, bl)
@@ -119,12 +123,12 @@ void test_blob()
 void test_number()
 {
     uint16_t test_num_100 = 100;
-    uint16_t test_num_250 = 250;
+    uint16_t test_num_16 = 16;
 
-    test_equals(DB::Get<uint16_t>(NUMBER), test_num_250);
+    test_equals(DB::Get<uint16_t>(NUMBER_U16), test_num_16);
 
-    DB::Set(NUMBER, test_num_100);
-    test_equals(DB::Get<uint16_t>(NUMBER), test_num_100);
+    DB::Set(NUMBER_U16, test_num_100);
+    test_equals(DB::Get<uint16_t>(NUMBER_U16), test_num_100);
 
     // DB::Set(NUMBER, int16_t(100)); - FAILURE!
 
@@ -148,7 +152,7 @@ void observer_callback(Dooby::enum_type type, void *data)
 {
     switch (type)
     {
-    case NUMBER:
+    case NUMBER_16:
         cout << "NUMBER ";
         break;
     case BOOL:
@@ -163,11 +167,45 @@ void observer_callback(Dooby::enum_type type, void *data)
     }
 }
 
+class Visitor
+{
+public:
+    void operator()(Dooby::enum_type type, Shooby::value_variant_t &value)
+    {
+        std::visit(
+            Shooby::Overload{
+                [&](uint16_t value)
+                { cout << Dooby::get_name(type) << " is a uint16 with " << value << endl; },
+                [&](int16_t value)
+                { cout << Dooby::get_name(type) << " is a int16 with " << value << endl; },
+                [&](uint32_t value)
+                { cout << Dooby::get_name(type) << " is a uint32_t with " << value << endl; },
+                [&](bool value)
+                { cout << Dooby::get_name(type) << std::boolalpha << " is a bool with " << value << endl; },
+                [&](const char *value)
+                { cout << Dooby::get_name(type) << " is a string with " << value << endl; },
+                [&](const void *value)
+                { cout << Dooby::get_name(type) << " is a blob with " << *(Bl *)value << endl; },
+                [&](auto value)
+                { cout << "unknown" << endl; },
+            },
+            value);
+    }
+};
+
+void visit_test()
+{
+    Visitor visitor;
+    DB::VisitEach(visitor);
+}
+
 int main(void)
 {
 
     Shooby::DB<Dooby>::Init();
     DB::SetObserver(observer_callback, nullptr);
+
+    visit_test();
 
     try
     {
