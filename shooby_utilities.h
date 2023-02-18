@@ -25,19 +25,25 @@ namespace Shooby
     concept Pointer = std::is_pointer_v<T>;
 
     template <class T>
-    concept NotPointer = not
-    Pointer<T>;
+    concept NotPointer = not Pointer<T>;
 
     template <class T>
     concept EnumMetaMap = requires(T) {
         typename T::enum_type;
+        typename T::meta_data_t;
         requires std::is_enum_v<typename T::enum_type>;
         T::enum_type::NUM > 0;
         { T::name } -> std::convertible_to<const char *>;
         { T::META_MAP[0].size } -> std::convertible_to<size_t>;
         { T::META_MAP[0].name } -> std::convertible_to<const char *>;
-        { T::META_MAP[0].default_val } -> std::convertible_to<value_variant_t>;
+        //{ T::META_MAP[0].default_val } -> std::convertible_to<T::meta_data_t::variant_t>;
     };
+
+    // template <class T>
+    // concept DbVisitor = requires(T t) {
+    //     { t(T::meta_data_t::enum_type, T::meta_data_t::variant_t) } -> std::convertible_to<void>;
+    // };
+
 
     // ================== UTILITY FUNCTIONS =================
 

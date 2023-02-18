@@ -8,23 +8,28 @@
 
 namespace Shooby
 {
-
+    template <class... BLOBS>
     struct MetaData
     {
-        template <Arithmetic T>
-        consteval MetaData(const char *n, T num_default) : size(sizeof(T)), name(n), default_val(num_default) {}
-
-        consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
+        using variant_t = std::variant<bool,
+                                       uint8_t,
+                                       int8_t,
+                                       uint16_t,
+                                       int16_t,
+                                       int32_t,
+                                       uint32_t,
+                                       float,
+                                       const char *,
+                                       BLOBS...>;
 
         template <class T>
-        consteval MetaData(const char *n, const T *def_blob, size_t s = sizeof(T)) : size(s), name(n), default_val((const void *)def_blob)
-        {
-            SHOOBY_ASSERT(sizeof(T) == size, "blob size mismatch");
-        }
+        consteval MetaData(const char *n, T &&_default_val) : size(sizeof(T)), name(n), default_val(std::move(_default_val)) {}
+
+        consteval MetaData(const char *n, size_t s, const char *_def_str) : size(s), name(n), default_val(_def_str) {}
 
         const size_t size;
         const char *name;
-        const value_variant_t default_val;
+        const variant_t default_val;
     };
 
     struct Backend
@@ -41,6 +46,9 @@ namespace Shooby
     class DB
     {
     public:
+        using meta_data_t = E::meta_data_t;
+        using variant_t = E::variant_t;
+
         typedef void (*observer_f)(E::enum_type, void *);
 
         static void Init();
