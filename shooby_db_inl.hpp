@@ -254,13 +254,14 @@ void DB<E>::Visit(E::enum_type e, Visitor &visitor)
     Lock lock(s_mutex);
 
     size_t offset = get_offset(e);
+    const void *dst = DATA_BUFFER + offset;
 
     value_variant_t val = std::visit(Overload{
-                                         [dst = DATA_BUFFER + offset](const char *t)
+                                         [dst](const char *t)
                                          { return value_variant_t((const char *)dst); },
-                                         [dst = DATA_BUFFER + offset](const void *t)
+                                         [dst](const void *t)
                                          { return value_variant_t(dst); },
-                                         [dst = DATA_BUFFER + offset](auto t)
+                                         [dst](auto t)
                                          { return value_variant_t(*(decltype(t) *)dst); },
                                      },
                                      E::META_MAP[e].default_val);
