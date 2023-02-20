@@ -3,66 +3,93 @@
 
 #include "shooby_db.h"
 
-#define DEFINE_SHOOBY_META_MAP(NAME) \
-    struct NAME                      \
-    {                                \
-        static constexpr const char *name = #NAME;
+//================HELPERS==============================================
+#define TO_ENUM(NAME, Y, Z) NAME,
 
-#define SHOOBY_ENUMS(...) \
-    enum enum_type        \
-    {                     \
-        __VA_ARGS__,      \
-        NUM               \
+#define NOTHING(X, Y, Z) // nothing
+#define STATIC_ALLOCATE_BLOB(NAME, TYPE, CTOR) static const inline TYPE def_##NAME = CTOR;
+
+#define TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT) \
+    [ENUM] = {#ENUM, TYPE(DEFAULT)},
+#define TO_META_STRING(ENUM, DEFAULT, SIZE) \
+    [ENUM] = {#ENUM, SIZE, DEFAULT},
+#define TO_META_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
+    [ENUM] = {#ENUM, &def_##ENUM},
+//=====================================================================
+
+#define DEFINE_SHOOBY_META_MAP(NAME, LIST)                               \
+    struct NAME                                                          \
+    {                                                                    \
+        static inline constexpr const char *name = #NAME;                \
+        enum enum_type                                                   \
+        {                                                                \
+            LIST(TO_ENUM, TO_ENUM, TO_ENUM)                              \
+                NUM                                                      \
+        };                                                               \
+                                                                         \
+        /*STATIC ALLOCATE BLOBS IN STRUCT*/                              \
+        LIST(NOTHING, NOTHING, STATIC_ALLOCATE_BLOB)                     \
+                                                                         \
+        static inline constexpr Shooby::MetaData META_MAP[NUM] =         \
+            {                                                            \
+                LIST(TO_META_ARITHMETIC, TO_META_STRING, TO_META_BLOB)}; \
+                                                                         \
+        static inline constexpr const char *get_name(enum_type t)        \
+        {                                                                \
+            return META_MAP[t].name;                                     \
+        }                                                                \
+        static inline constexpr size_t get_size(enum_type t)             \
+        {                                                                \
+            return META_MAP[t].size;                                     \
+        }                                                                \
     };
 
-#define SHOOBY_META_MAP_START                                         \
-    static inline constexpr Shooby::MetaData META_MAP[enum_type::NUM] \
-    {
-
-#define META_MAP_INTEGRAL(ENUM, TYPE, DEFAULT) \
-    [ENUM] = {#ENUM, TYPE(DEFAULT)},
-#define META_MAP_STRING(ENUM, DEFAULT, SIZE) \
-    [ENUM] = {#ENUM, SIZE, DEFAULT},
-#define META_MAP_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
-    [ENUM] = {#ENUM, &DEFAULT_INSTANCE},
-
-#define SHOOBY_META_MAP_END                                   \
-    }                                                         \
-    ;                                                         \
-    static inline constexpr const char *get_name(enum_type t) \
-    {                                                         \
-        return META_MAP[t].name;                              \
-    }                                                         \
-    static inline constexpr size_t get_size(enum_type t)      \
-    {                                                         \
-        return META_MAP[t].size;                              \
-    }                                                         \
-    }                                                         \
-    ;
-
 /*
-================= USAGE =================
+=======================================================================
+*~*~*~*~*~*~*~ THIS IS HOW WE CREATE A DATABASE METAMAP *~*~*~*~*~*~*~*
+=======================================================================
 
-define a metamap for a database named "Shooby"
+1. Define a macro with 3 parameters.
+ Inside use the parameters to define the members of the DB.
+ The name of the macro is not important.
 
-** DEFINITION **
-//1. define the metamap name
-DEFINE_SHOOBY_META_MAP(Dooby)
-//2. define the enums
-SHOOBY_ENUMS(
-    NUMBER,
-    BOOL,
-    STRING,
-    BLOB
-)
+```
+#define DB_MEMBERS(CONFIG_NUM, CONFIG_STRING, CONFIG_BLOB)     \
+    CONFIG_NUM(A_NUMBER_16, uint16_t, 16)                        \
+    CONFIG_NUM(SOME_BOOL, bool, true)                               \
+    CONFIG_STRING(SOME_STRING, "HELLO", 10)                         \
+    CONFIG_NUM(NUMBER_32, uint32_t, 32)                        \
+    CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
+```
 
-//3. define the metamap
-SHOOBY_META_MAP_START
-META_MAP_INTEGRAL(NUMBER, uint16_t, 250)
-META_MAP_INTEGRAL(BOOL, bool, true)
-META_MAP_STRING(STRING, "WHATEVER", 32)
-META_MAP_BLOB(BLOB, BlobClass, some_blob_class_instance)
-SHOOBY_META_MAP_END
+2. Define the DB meta map class with a name (DB_NAME),
+ and the macro you defined earlier (DB_MEMBERS)
+
+```
+DEFINE_SHOOBY_META_MAP(DB_NAME, DB_MEMBERS)
+```
+
+NOTE: YOU CAN CHANGE THE NAME OF THE MACRO PARAMETERS BUT:
+     ***DO NOT CHANGE THE ORDER OF THE MACRO PARAMETERS***
+
+This is it. You can use it like this:
+```
+                    using enum DB_NAME::enum_type;
+
+                    Shooby::DB<DB_NAME>::Init();
+                    auto number = Shooby::DB<DB_NAME>::Get<uint16_t>(A_NUMBER_16);
+                    assert(number == 16);
+
+                    Shooby::DB<DB_NAME>::Set(A_NUMBER_16, uint16_t(32));
+
+                    number = Shooby::DB<DB_NAME>::Get<uint16_t>(A_NUMBER_16);
+                    assert(number == 32);
+
+                    std::cout << "db name: " << DB_NAME::name << std::endl;
+                    std::cout << "first config name: " << DB_NAME::get_name(A_NUMBER_16) << std::endl;
+```
+
+===============ALTERNATIVE CREATION METHOD============================
 
 You could also define the class yourself as long as it implements EnumMetaMap concept:
 struct Doobey
@@ -78,6 +105,8 @@ struct Doobey
         NUM  // < enum count NUM must be defined >
     };
 
+    Bloby some_blob_class_instance = Bloby{};
+
     // < static inline constexpr MetaData META_MAP[enum_type::NUM] must be defined >
     static inline constexpr Shooby::MetaData META_MAP[enum_type::NUM] = {       //This line is the same as SHOOBY_META_MAP_START
         [NUMBER] = {"NUMBER", uint16_t(250)},
@@ -87,19 +116,17 @@ struct Doobey
     };
 
     // You can also add any other members you want if it helps your implementation
+        static inline constexpr const char *get_name(enum_type t)
+        {
+            return META_MAP[t].name;
+        }
+
+        static inline constexpr size_t get_size(enum_type t)
+        {
+            return META_MAP[t].size;
+        }
 };
 
-
-** USAGE **
-//4. use the metamap
-DB<Shooby>::Init();
-auto num = DB<Doobey>::Get<uint16_t>(Doobey::NUMBER);
-assert(num == 250);
-
-DB<Shooby>::Set(Doobey::NUMBER, uint16_t(500));
-
-num = DB<Doobey>::Get<uint16_t>(Doobey::NUMBER);
-assert(num == 500);
 */
 
 #endif

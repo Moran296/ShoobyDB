@@ -21,25 +21,21 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
     return os;
 }
 
-Bl bl;
+#define DOOBY_MEMBERS(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
+    CONFIG_NUM(NUMBER_U16, uint16_t, 16)                   \
+    CONFIG_NUM(NUMBER_16, int16_t, -16)                    \
+    CONFIG_NUM(BOOL, bool, true)                           \
+    CONFIG_STR(STRING, "WHATEVER", 34)                     \
+    CONFIG_NUM(NUMBER_32, uint32_t, 32)                    \
+    CONFIG_BLOB(BLOB, Bl, Bl{})
 
-DEFINE_SHOOBY_META_MAP(Dooby)
-SHOOBY_ENUMS(
-    NUMBER_U16,
-    NUMBER_16,
-    NUMBER_U32,
-    BOOL,
-    STRING,
-    BLOB)
+DEFINE_SHOOBY_META_MAP(Dooby, DOOBY_MEMBERS)
 
-SHOOBY_META_MAP_START
-META_MAP_INTEGRAL(NUMBER_U16, uint16_t, 16)
-META_MAP_INTEGRAL(NUMBER_16, int16_t, -16)
-META_MAP_INTEGRAL(NUMBER_U32, uint32_t, 250)
-META_MAP_INTEGRAL(BOOL, bool, true)
-META_MAP_STRING(STRING, "WHATEVER", 33)
-META_MAP_BLOB(BLOB, Bl, bl)
-SHOOBY_META_MAP_END
+struct g
+{
+    static const inline auto f = []
+    { return 1; };
+};
 
 using namespace std;
 using enum Dooby::enum_type;
