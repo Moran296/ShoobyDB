@@ -21,15 +21,15 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
     return os;
 }
 
-#define DOOBY_MEMBERS(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
-    CONFIG_NUM(NUMBER_U16, uint16_t, 16)                   \
-    CONFIG_NUM(NUMBER_16, int16_t, -16)                    \
-    CONFIG_NUM(BOOL, bool, true)                           \
-    CONFIG_STR(STRING, "WHATEVER", 34)                     \
-    CONFIG_NUM(NUMBER_32, uint32_t, 32)                    \
+#define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
+    CONFIG_NUM(NUMBER_U16, uint16_t, 16)           \
+    CONFIG_NUM(NUMBER_16, int16_t, -16)            \
+    CONFIG_NUM(BOOL, bool, true)                   \
+    CONFIG_STR(STRING, "WHATEVER", 34)             \
+    CONFIG_NUM(NUMBER_32, uint32_t, 32)            \
     CONFIG_BLOB(BLOB, Bl, Bl{})
 
-DEFINE_SHOOBY_META_MAP(Dooby, DOOBY_MEMBERS)
+DEFINE_SHOOBY_META_MAP(Dooby)
 
 struct g
 {

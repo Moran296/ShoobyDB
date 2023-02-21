@@ -4,44 +4,44 @@
 #include "shooby_db.h"
 
 //================HELPERS==============================================
-#define TO_ENUM(NAME, Y, Z) NAME,
+#define SHOOBY_TO_ENUM(NAME, Y, Z) NAME,
 
-#define NOTHING(X, Y, Z) // nothing
-#define STATIC_ALLOCATE_BLOB(NAME, TYPE, CTOR) static const inline TYPE def_##NAME = CTOR;
+#define SHOOBY_NOTHING(X, Y, Z) // nothing
+#define SHOOBY_STATIC_ALLOCATE_BLOB(NAME, TYPE, CTOR) static const inline TYPE def_##NAME = CTOR;
 
-#define TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT) \
+#define SHOOBY_TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT) \
     [ENUM] = {#ENUM, TYPE(DEFAULT)},
-#define TO_META_STRING(ENUM, DEFAULT, SIZE) \
+#define SHOOBY_TO_META_STRING(ENUM, DEFAULT, SIZE) \
     [ENUM] = {#ENUM, SIZE, DEFAULT},
-#define TO_META_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
+#define SHOOBY_TO_META_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
     [ENUM] = {#ENUM, &def_##ENUM},
 //=====================================================================
 
-#define DEFINE_SHOOBY_META_MAP(NAME, LIST)                               \
-    struct NAME                                                          \
-    {                                                                    \
-        static inline constexpr const char *name = #NAME;                \
-        enum enum_type                                                   \
-        {                                                                \
-            LIST(TO_ENUM, TO_ENUM, TO_ENUM)                              \
-                NUM                                                      \
-        };                                                               \
-                                                                         \
-        /*STATIC ALLOCATE BLOBS IN STRUCT*/                              \
-        LIST(NOTHING, NOTHING, STATIC_ALLOCATE_BLOB)                     \
-                                                                         \
-        static inline constexpr Shooby::MetaData META_MAP[NUM] =         \
-            {                                                            \
-                LIST(TO_META_ARITHMETIC, TO_META_STRING, TO_META_BLOB)}; \
-                                                                         \
-        static inline constexpr const char *get_name(enum_type t)        \
-        {                                                                \
-            return META_MAP[t].name;                                     \
-        }                                                                \
-        static inline constexpr size_t get_size(enum_type t)             \
-        {                                                                \
-            return META_MAP[t].size;                                     \
-        }                                                                \
+#define DEFINE_SHOOBY_META_MAP(CONFIG_LIST)                                                          \
+    struct CONFIG_LIST                                                                               \
+    {                                                                                                \
+        static inline constexpr const char *name = #CONFIG_LIST;                                     \
+        enum enum_type                                                                               \
+        {                                                                                            \
+            CONFIG_LIST(SHOOBY_TO_ENUM, SHOOBY_TO_ENUM, SHOOBY_TO_ENUM)                              \
+                NUM                                                                                  \
+        };                                                                                           \
+                                                                                                     \
+        /*STATIC ALLOCATE BLOBS IN STRUCT*/                                                          \
+        CONFIG_LIST(SHOOBY_NOTHING, SHOOBY_NOTHING, SHOOBY_STATIC_ALLOCATE_BLOB)                     \
+                                                                                                     \
+        static inline constexpr Shooby::MetaData META_MAP[NUM] =                                     \
+            {                                                                                        \
+                CONFIG_LIST(SHOOBY_TO_META_ARITHMETIC, SHOOBY_TO_META_STRING, SHOOBY_TO_META_BLOB)}; \
+                                                                                                     \
+        static inline constexpr const char *get_name(enum_type t)                                    \
+        {                                                                                            \
+            return META_MAP[t].name;                                                                 \
+        }                                                                                            \
+        static inline constexpr size_t get_size(enum_type t)                                         \
+        {                                                                                            \
+            return META_MAP[t].size;                                                                 \
+        }                                                                                            \
     };
 
 /*
