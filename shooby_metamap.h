@@ -10,11 +10,11 @@
 #define SHOOBY_STATIC_ALLOCATE_BLOB(NAME, TYPE, CTOR) static const inline TYPE def_##NAME = CTOR;
 
 #define SHOOBY_TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT) \
-    [ENUM] = {#ENUM, TYPE(DEFAULT)},
+    {#ENUM, TYPE(DEFAULT)},
 #define SHOOBY_TO_META_STRING(ENUM, DEFAULT, SIZE) \
-    [ENUM] = {#ENUM, SIZE, DEFAULT},
+    {#ENUM, SIZE, DEFAULT},
 #define SHOOBY_TO_META_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
-    [ENUM] = {#ENUM, &def_##ENUM},
+    {#ENUM, &def_##ENUM},
 //=====================================================================
 
 #define DEFINE_SHOOBY_META_MAP(CONFIG_LIST)                                                          \
