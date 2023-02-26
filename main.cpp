@@ -22,12 +22,12 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
 }
 
 #define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
-    CONFIG_NUM(NUMBER_U16, uint16_t, 16)           \
-    CONFIG_NUM(NUMBER_16, int16_t, -16)            \
-    CONFIG_NUM(BOOL, bool, true)                   \
-    CONFIG_STR(STRING, "WHATEVER", 34)             \
-    CONFIG_NUM(NUMBER_32, uint32_t, 32)            \
-    CONFIG_BLOB(BLOB, Bl, Bl{})
+    CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16)           \
+    CONFIG_NUM(SOME_NUMBER_16, int16_t, -16)            \
+    CONFIG_NUM(SOME_BOOL, bool, true)                   \
+    CONFIG_STR(SOME_STRING, "WHATEVER", 34)             \
+    CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)            \
+    CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
 
 DEFINE_SHOOBY_META_MAP(Dooby)
 
@@ -76,14 +76,14 @@ void test_unequals(T a, T b)
 
 void test_string()
 {
-    auto unsafe_str = DB::Get<const char *>(STRING);
-    auto safe_fixed_str = DB::GetString<STRING>();
+    auto unsafe_str = DB::Get<const char *>(SOME_STRING);
+    auto safe_fixed_str = DB::GetString<SOME_STRING>();
     test_equals(unsafe_str, safe_fixed_str.c_str());
 
-    DB::Set(STRING, "HELLO");
+    DB::Set(SOME_STRING, "HELLO");
     test_unequals(unsafe_str, safe_fixed_str.c_str());
 
-    safe_fixed_str = DB::GetString<STRING>();
+    safe_fixed_str = DB::GetString<SOME_STRING>();
     test_equals(unsafe_str, safe_fixed_str.c_str());
 
     cout << "TEST PASSED" << endl;
@@ -91,8 +91,8 @@ void test_string()
 
 void test_blob()
 {
-    auto blob1 = DB::Get<Bl>(BLOB);
-    auto unsafe_blob = DB::Get<const Bl *>(BLOB);
+    auto blob1 = DB::Get<Bl>(SOME_BLOB);
+    auto unsafe_blob = DB::Get<const Bl *>(SOME_BLOB);
 
     test_equals(blob1, *unsafe_blob);
 
@@ -103,13 +103,13 @@ void test_blob()
     blob2.bye = 'H';
 
     test_unequals(blob1, blob2);
-    DB::Set(BLOB, blob2);
+    DB::Set(SOME_BLOB, blob2);
 
     test_unequals(blob1, blob2);
     test_unequals(blob1, *unsafe_blob);
     test_equals(blob2, *unsafe_blob);
 
-    blob1 = DB::Get<Bl>(BLOB);
+    blob1 = DB::Get<Bl>(SOME_BLOB);
     test_equals(blob1, blob2);
     test_equals(blob2, *unsafe_blob);
 
@@ -121,10 +121,10 @@ void test_number()
     uint16_t test_num_100 = 100;
     uint16_t test_num_16 = 16;
 
-    test_equals(DB::Get<uint16_t>(NUMBER_U16), test_num_16);
+    test_equals(DB::Get<uint16_t>(SOME_NUMBER_U16), test_num_16);
 
-    DB::Set(NUMBER_U16, test_num_100);
-    test_equals(DB::Get<uint16_t>(NUMBER_U16), test_num_100);
+    DB::Set(SOME_NUMBER_U16, test_num_100);
+    test_equals(DB::Get<uint16_t>(SOME_NUMBER_U16), test_num_100);
 
     // DB::Set(NUMBER, int16_t(100)); - FAILURE!
 
@@ -134,10 +134,10 @@ void test_number()
 void test_bool()
 {
 
-    test_equals(DB::Get<bool>(BOOL), true);
+    test_equals(DB::Get<bool>(SOME_BOOL), true);
 
-    DB::Set(BOOL, false);
-    test_equals(DB::Get<bool>(BOOL), false);
+    DB::Set(SOME_BOOL, false);
+    test_equals(DB::Get<bool>(SOME_BOOL), false);
 
     // DB::Set(BOOL, int16_t(100)); - FAILURE!
 
@@ -148,16 +148,16 @@ void observer_callback(Dooby::enum_type type, void *data)
 {
     switch (type)
     {
-    case NUMBER_16:
+    case SOME_NUMBER_16:
         cout << "NUMBER ";
         break;
-    case BOOL:
+    case SOME_BOOL:
         cout << "BOOL ";
         break;
-    case STRING:
+    case SOME_STRING:
         cout << "STRING ";
         break;
-    case BLOB:
+    case SOME_BLOB:
         cout << "BLOB ";
         break;
     }
