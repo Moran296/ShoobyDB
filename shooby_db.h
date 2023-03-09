@@ -27,24 +27,31 @@ namespace Shooby
         const value_variant_t default_val;
     };
 
-    struct Backend
-    {
-        typedef void (*Writer)(const char *e_name, const void *data, size_t size, void *user_data);
-        typedef void (*Reader)(const char *e_name, void *data, size_t size, void *user_data);
+    // ==================== BACKEND INTERFACE ====================
 
-        Writer writer{};
-        Reader reader{};
-        void *user_data{};
+    struct IBackend
+    {
+    public:
+        virtual ~IBackend() = default;
+
+        // called once at the beginning of the program. not mandatory
+        virtual void Init(){};
+
+        // Save changed values to the backend
+        virtual void Save(const char *e_name, const void *data, size_t size) = 0;
+
+        // Load values from the backend.
+        // Should return false if the value is not found, true otherwise
+        virtual bool Load(const char *e_name, void *data, size_t size) = 0;
     };
+
+    // ================== DATABASE CLASS =================
 
     template <EnumMetaMap E>
     class DB
     {
     public:
-        typedef void (*observer_f)(E::enum_type, void *);
-
-        static void Init();
-        static void Init(Backend &&backend);
+        static void Init(IBackend *backend = nullptr);
 
         static void Reset();
 
@@ -78,7 +85,15 @@ namespace Shooby
         template <class Visitor>
         static void VisitRaw(E::enum_type e, Visitor &visitor);
 
-        static void SetObserver(observer_f f, void *user_data = nullptr);
+        // Observer interface. Called when a value is changed
+        struct IObserver
+        {
+        public:
+            virtual ~IObserver() = default;
+            virtual void OnChange(E::enum_type e) = 0;
+        };
+
+        static void SetObserver(IObserver *observer);
 
         static const char *get_name(E::enum_type e) { return E::META_MAP[e].name; }
         static size_t get_size(E::enum_type e) { return E::META_MAP[e].size; }
@@ -101,15 +116,14 @@ namespace Shooby
         // INITIALIZATION RELATED
         static constinit inline bool s_is_initialized = false;
 
+        // BACKEND
+        static inline IBackend *s_backend{};
+
         // OBSERVER CALLBACK
-        static inline observer_f observer = nullptr;
-        static inline void *observer_user_data = nullptr;
+        static inline IObserver *s_observer{};
 
         // SYNCHRONIZATION
         static inline SHOOBY_MUTEX_TYPE s_mutex{};
-
-        // BACKEND
-        static inline Backend s_backend{};
     };
 
 #include "shooby_db_inl.hpp"

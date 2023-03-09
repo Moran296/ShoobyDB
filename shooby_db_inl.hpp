@@ -1,27 +1,25 @@
 
-template <EnumMetaMap E>
-void DB<E>::Init()
-{
-    SHOOBY_MUTEX_INIT(s_mutex);
-    Reset();
-
-    s_is_initialized = true;
-    SHOOBY_DEBUG_PRINT("shooby_db: initialized\n");
-}
 
 template <EnumMetaMap E>
-void DB<E>::Init(Backend &&backend)
+void DB<E>::Init(IBackend *backend)
 {
     SHOOBY_MUTEX_INIT(s_mutex);
-    s_backend = std::move(backend);
+    s_backend = backend;
 
     Reset();
-    if (s_backend.reader != nullptr)
+    if (s_backend != nullptr)
     {
+        s_backend->Init();
+
         for (int i = 0; i < E::NUM; i++)
         {
             typename E::enum_type e = static_cast<E::enum_type>(i);
-            s_backend.reader(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), s_backend.user_data);
+            bool entry_found = s_backend->Load(get_name(e), DATA_BUFFER + get_offset(e), get_size(e));
+            if (not entry_found)
+            {
+                SHOOBY_DEBUG_PRINT("shooby_db: entry not found: %s, saving default\n", get_name(e));
+                s_backend->Save(get_name(e), DATA_BUFFER + get_offset(e), get_size(e));
+            }
         }
     }
 
@@ -189,15 +187,15 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     {
         Lock lock(s_mutex);
         changed = set_if_changed(DATA_BUFFER + get_offset(e), t, size);
-        if (changed && s_backend.writer != nullptr)
+        if (changed && s_backend != nullptr)
         {
             SHOOBY_DEBUG_PRINT("writing one value to backend...\n");
-            s_backend.writer(get_name(e), DATA_BUFFER + get_offset(e), get_size(e), s_backend.user_data);
+            s_backend->Save(get_name(e), DATA_BUFFER + get_offset(e), get_size(e));
         }
     }
 
-    if (changed && observer != nullptr)
-        observer(e, observer_user_data);
+    if (changed && s_observer != nullptr)
+        s_observer->OnChange(e);
 
     return changed;
 }
@@ -283,10 +281,9 @@ void DB<E>::VisitEach(Visitor &visitor)
 }
 
 template <EnumMetaMap E>
-void DB<E>::SetObserver(observer_f f, void *user_data)
+void DB<E>::SetObserver(DB<E>::IObserver *observer)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     Lock lock(s_mutex);
-    observer = f;
-    observer_user_data = user_data;
+    s_observer = observer;
 }
