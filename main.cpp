@@ -22,11 +22,11 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
 }
 
 #define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
-    CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16)           \
-    CONFIG_NUM(SOME_NUMBER_16, int16_t, -16)            \
-    CONFIG_NUM(SOME_BOOL, bool, true)                   \
-    CONFIG_STR(SOME_STRING, "WHATEVER", 34)             \
-    CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)            \
+    CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16)      \
+    CONFIG_NUM(SOME_NUMBER_16, int16_t, -16)       \
+    CONFIG_NUM(SOME_BOOL, bool, true)              \
+    CONFIG_STR(SOME_STRING, "WHATEVER", 34)        \
+    CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)       \
     CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
 
 DEFINE_SHOOBY_META_MAP(Dooby)
@@ -144,24 +144,43 @@ void test_bool()
     cout << "TEST PASSED" << endl;
 }
 
-void observer_callback(Dooby::enum_type type, void *data)
+class Observer final : public Shooby::DB<Dooby>::IObserver
 {
-    switch (type)
+public:
+    void OnChange(Dooby::enum_type type) override
     {
-    case SOME_NUMBER_16:
-        cout << "NUMBER ";
-        break;
-    case SOME_BOOL:
-        cout << "BOOL ";
-        break;
-    case SOME_STRING:
-        cout << "STRING ";
-        break;
-    case SOME_BLOB:
-        cout << "BLOB ";
-        break;
+        switch (type)
+        {
+        case SOME_NUMBER_16:
+            cout << "NUMBER ";
+            break;
+        case SOME_BOOL:
+            cout << "BOOL ";
+            break;
+        case SOME_STRING:
+            cout << "STRING ";
+            break;
+        case SOME_BLOB:
+            cout << "BLOB ";
+            break;
+        }
     }
-}
+};
+
+class Backend final : public Shooby::IBackend
+{
+public:
+    void Save(const char *e_name, const void *data, size_t size) override
+    {
+        cout << "Backend Saved " << e_name << endl;
+    }
+
+    bool Load(const char *e_name, void *data, size_t size) override
+    {
+        cout << "Backend Loaded " << e_name << endl;
+        return true;
+    }
+};
 
 class Visitor
 {
@@ -198,8 +217,11 @@ void visit_test()
 int main(void)
 {
 
-    Shooby::DB<Dooby>::Init();
-    DB::SetObserver(observer_callback, nullptr);
+    Backend backend;
+    Shooby::DB<Dooby>::Init(&backend);
+
+    Observer observer;
+    DB::SetObserver(&observer);
 
     visit_test();
 
