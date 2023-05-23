@@ -4,16 +4,33 @@
 #include "shooby_db.h"
 
 //================HELPERS==============================================
-#define SHOOBY_TO_ENUM(NAME, Y, Z) NAME,
+#define SHOOBY_TO_ENUM(NAME, ...) NAME,
 
-#define SHOOBY_NOTHING(X, Y, Z) // nothing
-#define SHOOBY_STATIC_ALLOCATE_BLOB(NAME, TYPE, CTOR) static const inline TYPE def_##NAME = CTOR;
+#define SHOOBY_NOTHING(...) // nothing
+#define SHOOBY_STATIC_ALLOCATE_BLOB(NAME, TYPE, ...) static const inline TYPE def_##NAME = __VA_ARGS__;
 
-#define SHOOBY_TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT) \
-    {#ENUM, TYPE(DEFAULT)},
+#define SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS(NAME, TYPE, DEFAULT, MIN, MAX, ...)                                                             \
+    static_assert(MIN >= std::numeric_limits<TYPE>::lowest() && MAX <= std::numeric_limits<TYPE>::max(), #NAME ": minmax out of type range!"); \
+    static_assert(DEFAULT >= MIN && DEFAULT <= MAX, #NAME ": value out of minmax range!");
+
+// Asserts that the default value is in the range provided, if not provided, the range is the type numeric limits
+#define SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS_CHECK(NAME, TYPE, DEFAULT, ...)      \
+    SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS(NAME, TYPE, DEFAULT,                     \
+                                           __VA_ARGS__ __VA_OPT__(, )               \
+                                               std::numeric_limits<TYPE>::lowest(), \
+                                           std::numeric_limits<TYPE>::max())
+
+#define SHOOBY_TO_META_ARITHMETIC_IMPL(ENUM, TYPE, DEFAULT, MIN, MAX, ...) \
+    {#ENUM, TYPE(DEFAULT), static_cast<uint32_t>(MIN), static_cast<uint32_t>(MAX)},
+
+#define SHOOBY_TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT, ...)                 \
+    SHOOBY_TO_META_ARITHMETIC_IMPL(ENUM, TYPE, DEFAULT,                     \
+                                   __VA_ARGS__ __VA_OPT__(, )               \
+                                       std::numeric_limits<TYPE>::lowest(), \
+                                   std::numeric_limits<TYPE>::max())
 #define SHOOBY_TO_META_STRING(ENUM, DEFAULT, SIZE) \
     {#ENUM, SIZE, DEFAULT},
-#define SHOOBY_TO_META_BLOB(ENUM, TYPE, DEFAULT_INSTANCE) \
+#define SHOOBY_TO_META_BLOB(ENUM, TYPE, ...) \
     {#ENUM, &def_##ENUM},
 //=====================================================================
 
@@ -26,6 +43,9 @@
             CONFIG_LIST(SHOOBY_TO_ENUM, SHOOBY_TO_ENUM, SHOOBY_TO_ENUM)                              \
                 NUM                                                                                  \
         };                                                                                           \
+                                                                                                     \
+        /*static asserts for arithmetic types ranges*/                                               \
+        CONFIG_LIST(SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS_CHECK, SHOOBY_NOTHING, SHOOBY_NOTHING)    \
                                                                                                      \
         /*STATIC ALLOCATE BLOBS IN STRUCT*/                                                          \
         CONFIG_LIST(SHOOBY_NOTHING, SHOOBY_NOTHING, SHOOBY_STATIC_ALLOCATE_BLOB)                     \

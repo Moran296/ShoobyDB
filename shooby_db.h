@@ -12,7 +12,11 @@ namespace Shooby
     struct MetaData
     {
         template <Arithmetic T>
-        consteval MetaData(const char *n, T num_default) : size(sizeof(T)), name(n), default_val(num_default) {}
+        consteval MetaData(const char *n, T num_default, uint32_t min, uint32_t max) : size(sizeof(T)),
+                                                                                       name(n),
+                                                                                       default_val(num_default),
+                                                                                       arithmetic_min(static_cast<uint32_t>(min)),
+                                                                                       arithmetic_max(static_cast<uint32_t>(max)) {}
 
         consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
 
@@ -25,6 +29,8 @@ namespace Shooby
         const size_t size;
         const char *name;
         const value_variant_t default_val;
+        const int32_t arithmetic_min = std::numeric_limits<uint32_t>::min();
+        const int32_t arithmetic_max = std::numeric_limits<uint32_t>::max();
     };
 
     // ==================== BACKEND INTERFACE ====================

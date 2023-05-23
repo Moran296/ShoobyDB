@@ -21,12 +21,15 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
     return os;
 }
 
-#define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB) \
-    CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16)      \
-    CONFIG_NUM(SOME_NUMBER_16, int16_t, -16)       \
-    CONFIG_NUM(SOME_BOOL, bool, true)              \
-    CONFIG_STR(SOME_STRING, "WHATEVER", 34)        \
-    CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)       \
+static_assert(sizeof(float) == sizeof(uint32_t), "sizes bad !");
+
+#define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB)     \
+    CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16, 0, 500)  \
+    CONFIG_NUM(SOME_NUMBER_16, int16_t, -16, -50, 100) \
+    CONFIG_NUM(SOME_BOOL, bool, true)                  \
+    CONFIG_STR(SOME_STRING, "WHATEVER", 34)            \
+    CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)           \
+    CONFIG_NUM(SOME_FLOAT, float, -3, -5, 50)          \
     CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
 
 DEFINE_SHOOBY_META_MAP(Dooby)
