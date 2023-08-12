@@ -1,4 +1,4 @@
-# ShoobyDB
+# ShoobyDB 🐻
 **Lightweight configurations database for real time embedded systems in c++20**
 
 This is header only library to easily define a set of heterogeneous data configurations as a database and access them in a thread safe manner.
