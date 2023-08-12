@@ -97,6 +97,7 @@ template <Pointer T>
 T DB<E>::Get(E::enum_type e)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
+    SHOOBY_DEBUG_PRINT("GET %s\n", get_name(e));
     Lock lock(s_mutex);
 
     // case for strings
@@ -141,6 +142,7 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     using raw_type = std::decay_t<T>;
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     size_t size = get_size(e);
+    SHOOBY_DEBUG_PRINT("SET %s\n", get_name(e));
 
     if constexpr (std::is_pointer_v<raw_type>)
     {
