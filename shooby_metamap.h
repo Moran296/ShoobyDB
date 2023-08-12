@@ -21,7 +21,7 @@
                                            std::numeric_limits<TYPE>::max())
 
 #define SHOOBY_TO_META_ARITHMETIC_IMPL(ENUM, TYPE, DEFAULT, MIN, MAX, ...) \
-    {#ENUM, TYPE(DEFAULT), static_cast<uint32_t>(MIN), static_cast<uint32_t>(MAX)},
+    {#ENUM, TYPE(DEFAULT), TYPE(MIN), TYPE(MAX)},
 
 #define SHOOBY_TO_META_ARITHMETIC(ENUM, TYPE, DEFAULT, ...)                 \
     SHOOBY_TO_META_ARITHMETIC_IMPL(ENUM, TYPE, DEFAULT,                     \

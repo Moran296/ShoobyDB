@@ -1,6 +1,7 @@
 #ifndef _SHOOBY_DB_H_
 #define _SHOOBY_DB_H_
 
+#include <bit>
 #include "shooby_utilities.h"
 #include "shooby_config.h"
 
@@ -11,12 +12,21 @@ namespace Shooby
 
     struct MetaData
     {
+        consteval MetaData(const char *n, float num_default, float min, float max) : size(sizeof(float)),
+                                                                                     name(n),
+                                                                                     default_val(num_default),
+                                                                                     arithmetic_min(std::bit_cast<uint32_t>(min)),
+                                                                                     arithmetic_max(std::bit_cast<uint32_t>(max))
+        {
+            static_assert(sizeof(float) == sizeof(uint32_t), "float size mismatch");
+        }
+
         template <Arithmetic T>
-        consteval MetaData(const char *n, T num_default, uint32_t min, uint32_t max) : size(sizeof(T)),
-                                                                                       name(n),
-                                                                                       default_val(num_default),
-                                                                                       arithmetic_min(static_cast<uint32_t>(min)),
-                                                                                       arithmetic_max(static_cast<uint32_t>(max)) {}
+        consteval MetaData(const char *n, T num_default, T min, T max) : size(sizeof(T)),
+                                                                         name(n),
+                                                                         default_val(num_default),
+                                                                         arithmetic_min(static_cast<uint32_t>(min)),
+                                                                         arithmetic_max(static_cast<uint32_t>(max)) {}
 
         consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
 
