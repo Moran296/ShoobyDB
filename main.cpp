@@ -21,8 +21,6 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
     return os;
 }
 
-static_assert(sizeof(float) == sizeof(uint32_t), "sizes bad !");
-
 #define Dooby(CONFIG_NUM, CONFIG_STR, CONFIG_BLOB)     \
     CONFIG_NUM(SOME_NUMBER_U16, uint16_t, 16, 0, 500)  \
     CONFIG_NUM(SOME_NUMBER_16, int16_t, -16, -50, 100) \
@@ -30,6 +28,7 @@ static_assert(sizeof(float) == sizeof(uint32_t), "sizes bad !");
     CONFIG_STR(SOME_STRING, "WHATEVER", 34)            \
     CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)           \
     CONFIG_NUM(SOME_FLOAT, float, -3, -5, 50)          \
+    CONFIG_NUM(SOME_FLOAT2, float, -3)                 \
     CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
 
 DEFINE_SHOOBY_META_MAP(Dooby)
@@ -217,6 +216,48 @@ void visit_test()
     DB::VisitEach(visitor);
 }
 
+void range_tests()
+{
+    // in range int16_t
+    bool success = DB::Set<int16_t>(SOME_NUMBER_16, 40);
+    test_equals(success, true);
+    // out of defined range
+    success = DB::Set<int16_t>(SOME_NUMBER_16, 200);
+    test_equals(success, false);
+    success = DB::Set<int16_t>(SOME_NUMBER_16, -200);
+    test_equals(success, false);
+
+    // uint32_t max
+    success = DB::Set<uint32_t>(SOME_NUMBER_32, numeric_limits<uint32_t>::max());
+    test_equals(success, true);
+
+    // float with defined min max
+    success = DB::Set<float>(SOME_FLOAT, 49);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT, 51);
+    test_equals(success, false);
+    success = DB::Set<float>(SOME_FLOAT, -2);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT, -500);
+    test_equals(success, false);
+
+    // float with undefined ranges (float::lowest and float::max)
+    success = DB::Set<float>(SOME_FLOAT2, 49);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, 51);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, -2);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, -500);
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, numeric_limits<float>::max());
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, numeric_limits<float>::min());
+    test_equals(success, true);
+    success = DB::Set<float>(SOME_FLOAT2, numeric_limits<float>::lowest());
+    test_equals(success, true);
+}
+
 int main(void)
 {
 
@@ -234,6 +275,7 @@ int main(void)
         test_blob();
         test_number();
         test_bool();
+        range_tests();
     }
     catch (const char *e)
     {

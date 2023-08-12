@@ -182,8 +182,14 @@ bool DB<E>::Set(E::enum_type e, const T &t)
         if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("arithmetic type mismatch!");
 
-        bool in_allowed_range = (static_cast<decltype(E::META_MAP[e].arithmetic_min)>(t) >= E::META_MAP[e].arithmetic_min) &&
-                                (static_cast<decltype(E::META_MAP[e].arithmetic_min)>(t) <= E::META_MAP[e].arithmetic_max);
+        bool in_allowed_range = false;
+
+        if constexpr (std::is_floating_point_v<T>)
+            in_allowed_range = t >= std::bit_cast<T>(E::META_MAP[e].arithmetic_min) &&
+                               t <= std::bit_cast<T>(E::META_MAP[e].arithmetic_max);
+        else
+            in_allowed_range = t >= static_cast<T>(E::META_MAP[e].arithmetic_min) &&
+                               t <= static_cast<T>(E::META_MAP[e].arithmetic_max);
 
         if (not in_allowed_range)
         {
