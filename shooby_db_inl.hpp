@@ -209,8 +209,12 @@ bool DB<E>::Set(E::enum_type e, const T &t)
         }
     }
 
-    if (changed && s_observer != nullptr)
-        s_observer->OnChange(e);
+    IObserver *observer_node = s_observer;
+    while (observer_node != nullptr)
+    {
+        observer_node->OnSet(e, changed);
+        observer_node = observer_node->next;
+    }
 
     return changed;
 }
@@ -300,5 +304,6 @@ void DB<E>::SetObserver(DB<E>::IObserver *observer)
 {
     SHOOBY_ASSERT(s_is_initialized, "DB not initialized!");
     Lock lock(s_mutex);
+    observer->next = s_observer;
     s_observer = observer;
 }

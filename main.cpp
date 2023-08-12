@@ -149,24 +149,13 @@ void test_bool()
 class Observer final : public Shooby::DB<Dooby>::IObserver
 {
 public:
-    void OnChange(Dooby::enum_type type) override
+    void OnSet(Dooby::enum_type type, bool changed) override
     {
-        switch (type)
-        {
-        case SOME_NUMBER_16:
-            cout << "NUMBER ";
-            break;
-        case SOME_BOOL:
-            cout << "BOOL ";
-            break;
-        case SOME_STRING:
-            cout << "STRING ";
-            break;
-        case SOME_BLOB:
-            cout << "BLOB ";
-            break;
-        }
+        cout << "observer #" << this_observer << " OnSet " << Dooby::get_name(type) << (changed ? " changed" : " not changed") << endl;
     }
+
+    static inline int observers{};
+    int this_observer = ++observers;
 };
 
 class Backend final : public Shooby::IBackend
@@ -264,8 +253,10 @@ int main(void)
     Backend backend;
     Shooby::DB<Dooby>::Init(&backend);
 
-    Observer observer;
-    DB::SetObserver(&observer);
+    Observer observer1;
+    Observer observer2;
+    DB::SetObserver(&observer2);
+    DB::SetObserver(&observer1);
 
     visit_test();
 

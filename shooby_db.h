@@ -102,11 +102,15 @@ namespace Shooby
         static void VisitRaw(E::enum_type e, Visitor &visitor);
 
         // Observer interface. Called when a value is changed
-        struct IObserver
+        class IObserver
         {
         public:
             virtual ~IObserver() = default;
-            virtual void OnChange(E::enum_type e) = 0;
+            virtual void OnSet(E::enum_type e, bool changed) = 0;
+
+        private:
+            friend class DB;
+            IObserver *next = nullptr;
         };
 
         static void SetObserver(IObserver *observer);
