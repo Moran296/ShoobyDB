@@ -41,11 +41,15 @@ int main()
     Shooby::DB<CONNECTIVITY_CONFIG>::Init(/* some backend */);
 
     using enum CONNECTIVITY_CONFIG::enum_type;
-    //set something
-    Shooby::DB<CONNECTIVITY_CONFIG>::Set(HOST, "google.com");
+    using conn_db = Shooby::DB<CONNECTIVITY_CONFIG>;
 
-    //get something
-    auto port = Shooby::DB<CONNECTIVITY_CONFIG>::Get<uint16_t>(PORT);
+    // set something
+    conn_db::Set(HOST, "google.com");
+
+    // get something
+    auto port = conn_db::Get<uint16_t>(PORT);
+
+    // profit!
     printf("using port: %d\n", port);
 }
 
