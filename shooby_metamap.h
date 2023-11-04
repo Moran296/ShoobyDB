@@ -9,8 +9,8 @@
 #define SHOOBY_NOTHING(...) // nothing
 #define SHOOBY_STATIC_ALLOCATE_BLOB(NAME, TYPE, ...) static const inline TYPE def_##NAME = __VA_ARGS__;
 
-#define SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS(NAME, TYPE, DEFAULT, MIN, MAX, ...)                                                             \
-    static_assert(MIN >= std::numeric_limits<TYPE>::lowest() && MAX <= std::numeric_limits<TYPE>::max(), #NAME ": minmax out of type range!"); \
+#define SHOOBY_ARTIHMETIC_STATIC_ASSERT_LIMITS(NAME, TYPE, DEFAULT, MIN, MAX, ...)                                                                                       \
+    static_assert(std::is_enum_v<TYPE> || (MIN >= std::numeric_limits<TYPE>::lowest() && MAX <= std::numeric_limits<TYPE>::max()), #NAME ": minmax out of type range!"); \
     static_assert(DEFAULT >= MIN && DEFAULT <= MAX, #NAME ": value out of minmax range!");
 
 // Asserts that the default value is in the range provided, if not provided, the range is the type numeric limits

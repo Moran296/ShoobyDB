@@ -71,7 +71,7 @@ T DB<E>::Get(E::enum_type e)
     T t;
 
     // case for blobs
-    if constexpr (not std::is_arithmetic_v<T>)
+    if constexpr (not std::is_arithmetic_v<T> && not std::is_enum_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
@@ -83,8 +83,16 @@ T DB<E>::Get(E::enum_type e)
     // case for arithmetics
     else
     {
-        if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
-            ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
+        if constexpr (std::is_enum_v<T>)
+        {
+            if (not std::holds_alternative<std::underlying_type_t<T>>(E::META_MAP[e].default_val))
+                ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an enum");
+        }
+        else
+        {
+            if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
+                ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an arithmetic type");
+        }
     }
 
     Lock lock(s_mutex);
@@ -169,7 +177,7 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     }
 
     // case for blobs
-    else if constexpr (not std::is_arithmetic_v<T>)
+    else if constexpr (not std::is_arithmetic_v<T> && not std::is_enum_v<T>)
     {
         if (not std::holds_alternative<const void *>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("type mismatch! not a blob");
@@ -181,7 +189,12 @@ bool DB<E>::Set(E::enum_type e, const T &t)
     // case for arithmetics
     else
     {
-        if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
+        if constexpr (std::is_enum_v<T>)
+        {
+            if (not std::holds_alternative<std::underlying_type_t<T>>(E::META_MAP[e].default_val))
+                ON_SHOOBY_TYPE_MISMATCH("type mismatch! not an enum");
+        }
+        else if (not std::holds_alternative<T>(E::META_MAP[e].default_val))
             ON_SHOOBY_TYPE_MISMATCH("arithmetic type mismatch!");
 
         bool in_allowed_range = false;

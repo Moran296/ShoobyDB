@@ -15,6 +15,15 @@ struct Bl
     }
 };
 
+enum SOME_ENUM_TYPE
+{
+    SOME_ENUM_1,
+    SOME_ENUM_2,
+    SOME_ENUM_3,
+    SOME_NUM,
+    SOME_INVALID
+};
+
 std::ostream &operator<<(std::ostream &os, const Bl &bl)
 {
     os << "Bl{hi: " << bl.hi << ", f: " << bl.f << ", a: " << bl.a << ", bye: " << bl.bye << "}";
@@ -29,7 +38,8 @@ std::ostream &operator<<(std::ostream &os, const Bl &bl)
     CONFIG_NUM(SOME_NUMBER_32, uint32_t, 32)           \
     CONFIG_NUM(SOME_FLOAT, float, -3, -5, 50)          \
     CONFIG_NUM(SOME_FLOAT2, float, -3)                 \
-    CONFIG_BLOB(SOME_BLOB, Bl, Bl{})
+    CONFIG_BLOB(SOME_BLOB, Bl, Bl{})                   \
+    CONFIG_NUM(SOME_ENUM, SOME_ENUM_TYPE, SOME_ENUM_2, SOME_ENUM_1, SOME_NUM)
 
 DEFINE_SHOOBY_META_MAP(Dooby)
 
@@ -146,6 +156,13 @@ void test_bool()
     cout << "TEST PASSED" << endl;
 }
 
+void test_enum()
+{
+    test_equals(DB::Get<SOME_ENUM_TYPE>(SOME_ENUM), SOME_ENUM_2);
+    test_equals(DB::Set(SOME_ENUM, SOME_ENUM_3), true);
+    test_equals(DB::Get<SOME_ENUM_TYPE>(SOME_ENUM), SOME_ENUM_3);
+}
+
 class Observer final : public Shooby::DB<Dooby>::IObserver
 {
 public:
@@ -245,6 +262,10 @@ void range_tests()
     test_equals(success, true);
     success = DB::Set<float>(SOME_FLOAT2, numeric_limits<float>::lowest());
     test_equals(success, true);
+
+    // enum fail to set higher than defined max
+    success = DB::Set<SOME_ENUM_TYPE>(SOME_ENUM, SOME_INVALID);
+    test_equals(success, false);
 }
 
 int main(void)
@@ -266,6 +287,7 @@ int main(void)
         test_blob();
         test_number();
         test_bool();
+        test_enum();
         range_tests();
     }
     catch (const char *e)

@@ -26,7 +26,20 @@ namespace Shooby
                                                                          name(n),
                                                                          default_val(num_default),
                                                                          arithmetic_min(static_cast<uint32_t>(min)),
-                                                                         arithmetic_max(static_cast<uint32_t>(max)) {}
+                                                                         arithmetic_max(static_cast<uint32_t>(max))
+        {
+        }
+
+        template <Enum T>
+        consteval MetaData(const char *n, T num_default, T min, const T max) : size(sizeof(T)),
+                                                                               name(n),
+                                                                               default_val(static_cast<std::underlying_type_t<T>>(num_default)),
+                                                                               arithmetic_min(static_cast<std::underlying_type_t<T>>(min)),
+                                                                               arithmetic_max(static_cast<std::underlying_type_t<T>>(max))
+        {
+            static_assert(std::numeric_limits<T>::max() == 0, "c++ 20 enum numeric limits max == 0");
+            SHOOBY_ASSERT(max != std::numeric_limits<T>::max(), "enum min max must be specified");
+        }
 
         consteval MetaData(const char *n, size_t s, const char *def_str) : size(s), name(n), default_val(def_str) {}
 

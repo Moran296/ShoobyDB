@@ -22,11 +22,13 @@ namespace Shooby
     concept Arithmetic = std::is_arithmetic_v<T>;
 
     template <class T>
+    concept Enum = std::is_enum_v<T>;
+
+    template <class T>
     concept Pointer = std::is_pointer_v<T>;
 
     template <class T>
-    concept NotPointer = not
-    Pointer<T>;
+    concept NotPointer = not Pointer<T>;
 
     template <class T>
     concept EnumMetaMap = requires(T) {
